@@ -29,6 +29,8 @@ class DashboardSeeder extends Seeder
         // 3. Create Borrow Records for the last 15 days to form a nice curve
         $curveData = [25, 48, 64, 53, 38, 28, 42, 60, 78, 68, 50, 38, 22, 33, 48];
         
+        $borrowDuration = (int) \App\Models\Setting::get('borrow_duration', 5);
+
         foreach ($curveData as $daysAgo => $count) {
             $daysSinceBorrow = 14 - $daysAgo; // 14 to 0
             $date = \Carbon\Carbon::now()->subDays($daysSinceBorrow);
@@ -36,8 +38,8 @@ class DashboardSeeder extends Seeder
             for ($j = 0; $j < $count; $j++) {
                 $status = 'returned';
                 
-                // If it is borrowed recently (within last 5 days), it's a standard 'borrowed' record
-                if ($daysSinceBorrow <= 4) {
+                // If it is borrowed recently (within last borrow duration days), it's a standard 'borrowed' record
+                if ($daysSinceBorrow <= ($borrowDuration - 1)) {
                     // 70% chance of 'borrowed', 30% chance of 'returned' early
                     $status = rand(1, 10) <= 7 ? 'borrowed' : 'returned';
                 } else {
@@ -47,7 +49,7 @@ class DashboardSeeder extends Seeder
                 }
 
                 $borrowDateStr = $date->format('Y-m-d');
-                $dueDateStr = $date->copy()->addDays(5)->format('Y-m-d'); // 5 days borrowing limit
+                $dueDateStr = $date->copy()->addDays($borrowDuration)->format('Y-m-d'); // dynamic borrowing limit
                 
                 $returnDateStr = null;
                 if ($status === 'returned') {

@@ -55,6 +55,24 @@ class DatabaseSeeder extends Seeder
             'available_copies' => 3,
         ]);
 
+        // Seed default Settings
+        \App\Models\Setting::set('library_name', 'Laravel Library');
+        \App\Models\Setting::set('default_language', 'English');
+        \App\Models\Setting::set('date_format', 'May 24, 2024 (MMM DD, YYYY)');
+        \App\Models\Setting::set('timezone', '(UTC+05:30) Kolkata, India');
+        \App\Models\Setting::set('currency', 'INR (₹)');
+        \App\Models\Setting::set('maintenance_mode', '0');
+        \App\Models\Setting::set('max_books_per_member', '5');
+        \App\Models\Setting::set('borrow_duration', '5');
+        \App\Models\Setting::set('renewal_period', '7');
+        \App\Models\Setting::set('allow_renewals', '1');
+        \App\Models\Setting::set('fine_rate', '5.00');
+        \App\Models\Setting::set('max_fine', '100.00');
+        \App\Models\Setting::set('grace_period', '0');
+        \App\Models\Setting::set('notify_member_registration', '1');
+        \App\Models\Setting::set('notify_due_reminder', '1');
+        \App\Models\Setting::set('notify_overdue_notices', '1');
+
         $this->call(DashboardSeeder::class);
     }
 }

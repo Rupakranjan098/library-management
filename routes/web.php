@@ -68,4 +68,5 @@ Route::middleware('auth')->group(function () {
     Route::get('reports', [\App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
     Route::get('reports/export', [\App\Http\Controllers\ReportController::class, 'export'])->name('reports.export');
     Route::get('settings', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index');
+    Route::post('settings', [\App\Http\Controllers\SettingController::class, 'store'])->name('settings.store');
 });

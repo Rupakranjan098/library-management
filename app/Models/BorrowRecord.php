@@ -51,6 +51,16 @@ class BorrowRecord extends Model
 
     public function getFineAttribute()
     {
-        return $this->days_overdue * 5; // 5 RS per day
+        $fineRate = (float) \App\Models\Setting::get('fine_rate', 5);
+        $maxFine = (float) \App\Models\Setting::get('max_fine', 100);
+        $gracePeriod = (int) \App\Models\Setting::get('grace_period', 0);
+
+        if ($this->days_overdue > $gracePeriod) {
+            $billableDays = $this->days_overdue - $gracePeriod;
+            $fine = $billableDays * $fineRate;
+            return min($fine, $maxFine);
+        }
+
+        return 0;
     }
 }
