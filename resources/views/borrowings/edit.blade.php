@@ -39,7 +39,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Member Name</label>
-                    <input type="text" name="member_name" required placeholder="Enter member name" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" value="{{ old('member_name', $borrowing->member->name ?? '') }}">
+                    <input type="text" name="member_name" list="members-list" required placeholder="Enter member name" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" autocomplete="off" value="{{ old('member_name', $borrowing->member->name ?? '') }}">
+                    <datalist id="members-list">
+                        @foreach(\App\Models\Member::all() as $member)
+                            <option value="{{ $member->name }}">
+                        @endforeach
+                    </datalist>
                 </div>
 
                 <div>
