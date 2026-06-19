@@ -63,7 +63,7 @@ class DatabaseSeeder extends Seeder
         \App\Models\Setting::set('currency', 'INR (₹)');
         \App\Models\Setting::set('maintenance_mode', '0');
         \App\Models\Setting::set('max_books_per_member', '5');
-        \App\Models\Setting::set('borrow_duration', '5');
+        \App\Models\Setting::set('borrow_duration', '15');
         \App\Models\Setting::set('renewal_period', '7');
         \App\Models\Setting::set('allow_renewals', '1');
         \App\Models\Setting::set('fine_rate', '5.00');

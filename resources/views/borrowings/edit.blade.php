@@ -58,12 +58,12 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Borrow Date</label>
-                    <input type="date" name="borrow_date" value="{{ \Carbon\Carbon::parse($borrowing->borrow_date)->format('Y-m-d') }}" required class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    <input type="date" name="borrow_date" id="borrow_date" value="{{ \Carbon\Carbon::parse($borrowing->borrow_date)->format('Y-m-d') }}" required class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Due Date</label>
-                    <input type="date" name="due_date" value="{{ \Carbon\Carbon::parse($borrowing->due_date)->format('Y-m-d') }}" required class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    <input type="date" name="due_date" id="due_date" value="{{ \Carbon\Carbon::parse($borrowing->due_date)->format('Y-m-d') }}" required class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
                 </div>
                 
                 <div>
@@ -83,4 +83,26 @@
             </div>
         </form>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const borrowDateInput = document.getElementById('borrow_date');
+            const dueDateInput = document.getElementById('due_date');
+            const borrowDuration = {{ (int) \App\Models\Setting::get('borrow_duration', 15) }};
+
+            borrowDateInput.addEventListener('change', function() {
+                if (this.value) {
+                    const borrowDate = new Date(this.value);
+                    borrowDate.setDate(borrowDate.getDate() + borrowDuration);
+                    
+                    // Format to YYYY-MM-DD
+                    const year = borrowDate.getFullYear();
+                    const month = String(borrowDate.getMonth() + 1).padStart(2, '0');
+                    const day = String(borrowDate.getDate()).padStart(2, '0');
+                    
+                    dueDateInput.value = `${year}-${month}-${day}`;
+                }
+            });
+        });
+    </script>
 @endsection
