@@ -9,6 +9,14 @@ class AuthorController extends Controller
 {
     public function index(Request $request)
     {
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $cleanSearch = str_replace(['-', ' '], '', $search);
+            if (preg_match('/^(?:\d{9}[\dX]|\d{13})$/i', $cleanSearch) || (ctype_digit($cleanSearch) && strlen($cleanSearch) >= 8)) {
+                return redirect()->route('books.index', ['search' => $search]);
+            }
+        }
+
         $query = \App\Models\Author::query();
 
         if ($request->filled('search')) {

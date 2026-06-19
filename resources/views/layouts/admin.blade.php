@@ -119,7 +119,7 @@
                     $searchAction = route('borrowings.index');
                 }
             @endphp
-            <form action="{{ $searchAction }}" method="GET" class="flex-1 flex justify-center max-w-lg mx-auto">
+            <form id="globalSearchForm" action="{{ $searchAction }}" method="GET" class="flex-1 flex justify-center max-w-lg mx-auto">
                 <div class="relative w-full">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -215,6 +215,24 @@
     @endif
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('globalSearchForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    const input = document.getElementById('globalSearchInput');
+                    if (input) {
+                        const query = input.value.trim();
+                        const cleanQuery = query.replace(/[- ]/g, '');
+                        // Detect if search query is a valid ISBN-10, ISBN-13, or a generic numeric search (e.g. partial ISBN)
+                        const isIsbn = /^(?:\d{9}[\dX]|\d{13})$/i.test(cleanQuery) || (/^\d+$/.test(cleanQuery) && cleanQuery.length >= 8);
+                        if (isIsbn) {
+                            this.action = "{{ route('books.index') }}";
+                        }
+                    }
+                });
+            }
+        });
+
         document.addEventListener('keydown', (e) => {
             if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
                 e.preventDefault();
