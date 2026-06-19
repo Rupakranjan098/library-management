@@ -79,6 +79,124 @@ class BookController extends Controller
         return redirect()->route('books.index')->with('success', 'Book updated successfully!');
     }
 
+    public function import(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
+        ]);
+
+        $file = $request->file('csv_file');
+        $path = $file->getRealPath();
+
+        $importedCount = 0;
+        $skippedCount = 0;
+        $skips = [];
+
+        if (($handle = fopen($path, 'r')) !== false) {
+            // Get headers
+            $headers = fgetcsv($handle, 1000, ',');
+            if ($headers) {
+                // Normalize headers (trim, lowercase)
+                $headers = array_map(function($header) {
+                    return strtolower(trim($header));
+                }, $headers);
+
+                // Map header names to their corresponding column indices
+                $titleIdx = array_search('title', $headers);
+                $isbnIdx = array_search('isbn', $headers);
+                $authorIdx = array_search('author', $headers);
+                if ($authorIdx === false) {
+                    $authorIdx = array_search('author_name', $headers);
+                }
+                $categoryIdx = array_search('category', $headers);
+                if ($categoryIdx === false) {
+                    $categoryIdx = array_search('category_name', $headers);
+                }
+                $copiesIdx = array_search('total_copies', $headers);
+                if ($copiesIdx === false) {
+                    $copiesIdx = array_search('copies', $headers);
+                }
+
+                if ($titleIdx === false || $isbnIdx === false || $authorIdx === false || $categoryIdx === false) {
+                    fclose($handle);
+                    return back()->withErrors(['csv_file' => 'CSV must contain headers: title, isbn, author (or author_name), category (or category_name).']);
+                }
+
+                $rowNum = 1;
+                while (($data = fgetcsv($handle, 1000, ',')) !== false) {
+                    $rowNum++;
+                    
+                    // Skip empty rows
+                    if (empty(array_filter($data))) {
+                        continue;
+                    }
+
+                    $title = isset($data[$titleIdx]) ? trim($data[$titleIdx]) : '';
+                    $isbn = isset($data[$isbnIdx]) ? trim($data[$isbnIdx]) : '';
+                    $authorName = isset($data[$authorIdx]) ? trim($data[$authorIdx]) : '';
+                    $categoryName = isset($data[$categoryIdx]) ? trim($data[$categoryIdx]) : '';
+                    $totalCopies = isset($data[$copiesIdx]) ? intval(trim($data[$copiesIdx])) : 1;
+
+                    if ($totalCopies < 1) {
+                        $totalCopies = 1;
+                    }
+
+                    if (empty($title) || empty($isbn) || empty($authorName) || empty($categoryName)) {
+                        $skippedCount++;
+                        $skips[] = "Row {$rowNum}: Missing required fields (title, isbn, author, or category).";
+                        continue;
+                    }
+
+                    // Check duplicate isbn in the database
+                    if (Book::where('isbn', $isbn)->exists()) {
+                        $skippedCount++;
+                        $skips[] = "Row {$rowNum}: ISBN '{$isbn}' already exists.";
+                        continue;
+                    }
+
+                    // Find or create Author
+                    $author = \App\Models\Author::where('name', $authorName)->first();
+                    if (!$author) {
+                        $author = \App\Models\Author::create([
+                            'name' => $authorName,
+                            'bio' => 'Added via CSV import.'
+                        ]);
+                    }
+
+                    // Find or create Category
+                    $category = \App\Models\Category::where('name', $categoryName)->first();
+                    if (!$category) {
+                        $category = \App\Models\Category::create([
+                            'name' => $categoryName,
+                            'description' => 'Added via CSV import.'
+                        ]);
+                    }
+
+                    // Create book
+                    Book::create([
+                        'title' => $title,
+                        'isbn' => $isbn,
+                        'author_id' => $author->id,
+                        'category_id' => $category->id,
+                        'total_copies' => $totalCopies,
+                        'available_copies' => $totalCopies,
+                    ]);
+
+                    $importedCount++;
+                }
+            }
+            fclose($handle);
+        }
+
+        $message = "Imported {$importedCount} books successfully.";
+        if ($skippedCount > 0) {
+            $message .= " Skipped {$skippedCount} rows.";
+            return redirect()->route('books.index')->with('success', $message)->withErrors($skips);
+        }
+
+        return redirect()->route('books.index')->with('success', $message);
+    }
+
     public function destroy(Book $book)
     {
         $book->delete();

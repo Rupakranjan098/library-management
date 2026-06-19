@@ -276,6 +276,128 @@
                     </div>
                 </div>
 
+                <!-- ═══════════════════════════════════════════════════════════
+                     PUBLIC PAGE SETTINGS (dynamic content)
+                ═══════════════════════════════════════════════════════════ -->
+                <div class="dark-card rounded-3xl p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mr-4 border border-purple-500/30">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Public Page Settings</h3>
+                            <p class="text-xs text-slate-400">Control what visitors see on the public library catalog.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Library Identity -->
+                        <div>
+                            <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="w-4 h-[1px] bg-indigo-500/40 inline-block"></span>
+                                Library Identity
+                                <span class="flex-1 h-[1px] bg-indigo-500/20 inline-block"></span>
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Library Name</label>
+                                    <input type="text" name="library_name" value="{{ \App\Models\Setting::get('library_name', 'Public Library') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Library Tagline</label>
+                                    <input type="text" name="library_tagline" value="{{ \App\Models\Setting::get('library_tagline', 'Knowledge for Everyone') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hero Section -->
+                        <div>
+                            <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="w-4 h-[1px] bg-indigo-500/40 inline-block"></span>
+                                Hero Section
+                                <span class="flex-1 h-[1px] bg-indigo-500/20 inline-block"></span>
+                            </h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Hero Title</label>
+                                    <input type="text" name="hero_title" value="{{ \App\Models\Setting::get('hero_title', 'Discover Your Next Great Read') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Hero Subtitle</label>
+                                    <textarea name="hero_subtitle" rows="2" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none">{{ \App\Models\Setting::get('hero_subtitle', 'Explore thousands of books across all genres.') }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- About Text -->
+                        <div>
+                            <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="w-4 h-[1px] bg-indigo-500/40 inline-block"></span>
+                                About Section
+                                <span class="flex-1 h-[1px] bg-indigo-500/20 inline-block"></span>
+                            </h4>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">About Text</label>
+                                <textarea name="about_text" rows="3" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none">{{ \App\Models\Setting::get('about_text', 'We believe knowledge should be accessible to all.') }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information -->
+                        <div>
+                            <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="w-4 h-[1px] bg-indigo-500/40 inline-block"></span>
+                                Contact Information
+                                <span class="flex-1 h-[1px] bg-indigo-500/20 inline-block"></span>
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Phone Number</label>
+                                    <input type="text" name="contact_phone" value="{{ \App\Models\Setting::get('contact_phone', '+91 98765 43210') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Phone Hours</label>
+                                    <input type="text" name="contact_phone_hours" value="{{ \App\Models\Setting::get('contact_phone_hours', 'Mon-Sat, 9 AM - 6 PM') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Contact Email</label>
+                                    <input type="email" name="contact_email" value="{{ \App\Models\Setting::get('contact_email', 'info@publiclibrary.in') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Email Note</label>
+                                    <input type="text" name="contact_email_note" value="{{ \App\Models\Setting::get('contact_email_note', 'We reply within 24 hours') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Full Address</label>
+                                    <input type="text" name="contact_address" value="{{ \App\Models\Setting::get('contact_address', '123 Library Lane, New Delhi - 110001') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Opening Hours -->
+                        <div>
+                            <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span class="w-4 h-[1px] bg-indigo-500/40 inline-block"></span>
+                                Opening Hours
+                                <span class="flex-1 h-[1px] bg-indigo-500/20 inline-block"></span>
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Weekday Hours</label>
+                                    <input type="text" name="hours_weekday" value="{{ \App\Models\Setting::get('hours_weekday', 'Mon - Fri: 8 AM - 8 PM') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Saturday Hours</label>
+                                    <input type="text" name="hours_saturday" value="{{ \App\Models\Setting::get('hours_saturday', 'Saturday: 9 AM - 5 PM') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-300 mb-2">Sunday Hours</label>
+                                    <input type="text" name="hours_sunday" value="{{ \App\Models\Setting::get('hours_sunday', 'Sunday: Closed') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2.5 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </form>

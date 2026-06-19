@@ -8,10 +8,16 @@
             <h1 class="text-2xl font-bold text-white tracking-tight">Books</h1>
             <p class="text-slate-400 mt-1 text-sm">Manage the library's book catalog.</p>
         </div>
-        <a href="{{ route('books.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-[0_4px_15px_rgba(79,70,229,0.3)] transition-colors flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            Add New Book
-        </a>
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleImportModal()" class="bg-[#1e293b] hover:bg-[#334155] text-indigo-400 hover:text-indigo-300 border border-slate-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-lg">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Import Books
+            </button>
+            <a href="{{ route('books.create') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-[0_4px_15px_rgba(79,70,229,0.3)] transition-colors flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                Add New Book
+            </a>
+        </div>
     </div>
 
     <!-- Data Table -->
@@ -89,4 +95,62 @@
             </table>
         </div>
     </div>
+
+    <!-- Import Modal -->
+    <div id="importBooksModal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" onclick="toggleImportModal()"></div>
+        <!-- Modal Card -->
+        <div class="dark-card rounded-2xl w-full max-w-lg p-6 relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-700">
+            <!-- Close Button -->
+            <button onclick="toggleImportModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            <h3 class="text-xl font-bold text-white mb-2 flex items-center">
+                <svg class="w-6 h-6 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Import Books via CSV
+            </h3>
+            <p class="text-slate-400 text-sm mb-4">Bulk import books into your library catalog. Missing authors or categories will be automatically registered.</p>
+            
+            <!-- Sample format box -->
+            <div class="bg-[#0f172a] border border-slate-800 rounded-xl p-4 mb-6">
+                <span class="text-xs text-indigo-300 font-bold block mb-2">Required CSV Column Headers</span>
+                <code class="text-xs text-slate-300 font-mono block overflow-x-auto whitespace-nowrap bg-slate-900/60 p-2 rounded">
+                    title, isbn, author, category, total_copies
+                </code>
+                <span class="text-[10px] text-slate-500 block mt-2">Example: "The Hobbit, 9780547928227, J.R.R. Tolkien, Fantasy, 5"</span>
+            </div>
+
+            <!-- Form -->
+            <form action="{{ route('books.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-slate-300 text-sm font-medium mb-2">Select CSV File</label>
+                    <input type="file" name="csv_file" accept=".csv,text/plain" required class="w-full bg-[#0f172a] border border-slate-700 rounded-xl p-3 text-sm text-slate-300 focus:outline-none focus:border-indigo-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 file:transition-colors">
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-700/50">
+                    <button type="button" onclick="toggleImportModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center shadow-lg">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        Upload and Import
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+        function toggleImportModal() {
+            const modal = document.getElementById('importBooksModal');
+            if (modal) {
+                modal.classList.toggle('hidden');
+            }
+        }
+    </script>
+    @endpush
 @endsection

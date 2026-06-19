@@ -6,6 +6,7 @@ use App\Models\Book;
 use App\Models\Category;
 use App\Models\Member;
 use App\Models\BorrowRecord;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 
 class PublicCatalogController extends Controller
@@ -15,12 +16,14 @@ class PublicCatalogController extends Controller
         $categories = Category::withCount('books')->orderBy('name')->get();
         $members = Member::orderBy('name')->get();
 
-        // Calculate dynamic stats
+        // Real dynamic stats from actual database
         $stats = [
-            'total_books' => Book::sum('total_copies') ?? 0,
-            'total_members' => Member::count(),
-            'books_borrowed' => BorrowRecord::where('status', 'borrowed')->count(),
-            'upcoming_events' => 28, // Mocked event count matching mockup design
+            'total_books'      => Book::count(),
+            'total_copies'     => Book::sum('total_copies') ?? 0,
+            'total_members'    => Member::count(),
+            'books_borrowed'   => BorrowRecord::whereIn('status', ['borrowed', 'overdue'])->count(),
+            'total_authors'    => \App\Models\Author::count(),
+            'total_categories' => $categories->count(),
         ];
 
         $query = Book::with(['author', 'category']);
@@ -44,7 +47,27 @@ class PublicCatalogController extends Controller
 
         $books = $query->latest()->get();
 
-        return view('welcome', compact('categories', 'books', 'members', 'stats'));
+        // New arrivals - latest 4 books regardless of filters
+        $newArrivals = Book::with(['author', 'category'])->latest()->take(4)->get();
+
+        // All site/contact settings from DB - fully dynamic
+        $site = [
+            'library_name'         => Setting::get('library_name', 'Public Library'),
+            'library_tagline'      => Setting::get('library_tagline', 'Knowledge for Everyone'),
+            'hero_title'           => Setting::get('hero_title', 'Discover Your Next Great Read'),
+            'hero_subtitle'        => Setting::get('hero_subtitle', 'Explore thousands of books across all genres. Find knowledge, inspiration, and adventure.'),
+            'about_text'           => Setting::get('about_text', 'We believe knowledge should be accessible to all. Our library has been serving the community for decades.'),
+            'contact_address'      => Setting::get('contact_address', '123 Library Lane, New Delhi - 110001, India'),
+            'contact_phone'        => Setting::get('contact_phone', '+91 98765 43210'),
+            'contact_phone_hours'  => Setting::get('contact_phone_hours', 'Mon-Sat, 9 AM - 6 PM'),
+            'contact_email'        => Setting::get('contact_email', 'info@publiclibrary.in'),
+            'contact_email_note'   => Setting::get('contact_email_note', 'We reply within 24 hours'),
+            'hours_weekday'        => Setting::get('hours_weekday', 'Mon - Fri: 8 AM - 8 PM'),
+            'hours_saturday'       => Setting::get('hours_saturday', 'Saturday: 9 AM - 5 PM'),
+            'hours_sunday'         => Setting::get('hours_sunday', 'Sunday: Closed'),
+        ];
+
+        return view('welcome', compact('categories', 'books', 'members', 'stats', 'newArrivals', 'site'));
     }
 
     public function reserve(Request $request, $id)
@@ -77,21 +100,40 @@ class PublicCatalogController extends Controller
 
         // Create the borrow record
         BorrowRecord::create([
-            'book_id' => $book->id,
-            'member_id' => $request->member_id,
+            'book_id'     => $book->id,
+            'member_id'   => $request->member_id,
             'borrow_date' => now()->toDateString(),
-            'due_date' => now()->addDays((int) \App\Models\Setting::get('borrow_duration', 5))->toDateString(),
-            'status' => 'borrowed',
+            'due_date'    => now()->addDays((int) Setting::get('borrow_duration', 15))->toDateString(),
+            'status'      => 'borrowed',
         ]);
 
         // Decrement copies
         $book->decrement('available_copies');
 
         return response()->json([
-            'success' => true,
-            'message' => 'Book reserved successfully!',
+            'success'          => true,
+            'message'          => 'Book reserved successfully!',
             'available_copies' => $book->available_copies,
-            'total_copies' => $book->total_copies,
+            'total_copies'     => $book->total_copies,
+        ]);
+    }
+
+    public function contact(Request $request)
+    {
+        $validated = $request->validate([
+            'name'    => 'required|string|max:100',
+            'email'   => 'required|email|max:150',
+            'subject' => 'required|string|max:200',
+            'message' => 'required|string|max:2000',
+        ]);
+
+        // Log the contact message for admin visibility
+        \Illuminate\Support\Facades\Log::info('Contact Form Submission', $validated);
+
+        $libraryName = Setting::get('library_name', 'the library');
+        return response()->json([
+            'success' => true,
+            'message' => "Thank you {$validated['name']}! Your message has been received by {$libraryName}. We'll get back to you within 1-2 business days.",
         ]);
     }
 }

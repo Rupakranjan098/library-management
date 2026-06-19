@@ -5,6 +5,7 @@ use App\Http\Controllers\PublicCatalogController;
 
 Route::get('/', [PublicCatalogController::class, 'index'])->name('catalog.index');
 Route::post('/books/{book}/reserve', [PublicCatalogController::class, 'reserve'])->name('catalog.reserve');
+Route::post('/contact', [PublicCatalogController::class, 'contact'])->name('catalog.contact');
 
 Route::get('/login', function () {
     return view('auth.login');
@@ -60,9 +61,12 @@ Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'ind
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::post('authors/import', [\App\Http\Controllers\AuthorController::class, 'import'])->name('authors.import');
     Route::resource('authors', \App\Http\Controllers\AuthorController::class);
+    Route::post('books/import', [\App\Http\Controllers\BookController::class, 'import'])->name('books.import');
     Route::resource('books', \App\Http\Controllers\BookController::class);
     Route::resource('borrowings', \App\Http\Controllers\BorrowRecordController::class);
+    Route::post('categories/import', [\App\Http\Controllers\CategoryController::class, 'import'])->name('categories.import');
     Route::resource('categories', \App\Http\Controllers\CategoryController::class);
     Route::resource('members', \App\Http\Controllers\MemberController::class);
     Route::get('reports', [\App\Http\Controllers\ReportController::class, 'index'])->name('reports.index');
