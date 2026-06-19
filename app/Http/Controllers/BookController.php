@@ -7,9 +7,22 @@ use Illuminate\Http\Request;
 
 class BookController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $books = \App\Models\Book::with(['author', 'category'])->latest()->get();
+        $query = \App\Models\Book::with(['author', 'category']);
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('isbn', 'like', "%{$search}%")
+                  ->orWhereHas('author', function ($aq) use ($search) {
+                      $aq->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $books = $query->latest()->get();
         return view('books.index', compact('books'));
     }
 

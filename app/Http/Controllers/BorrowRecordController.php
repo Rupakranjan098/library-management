@@ -7,9 +7,23 @@ use Illuminate\Http\Request;
 
 class BorrowRecordController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $borrowings = \App\Models\BorrowRecord::with(['book', 'member'])->latest()->get();
+        $query = \App\Models\BorrowRecord::with(['book', 'member']);
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('book', function ($bq) use ($search) {
+                    $bq->where('title', 'like', "%{$search}%")
+                       ->orWhere('isbn', 'like', "%{$search}%");
+                })->orWhereHas('member', function ($mq) use ($search) {
+                    $mq->where('name', 'like', "%{$search}%");
+                })->orWhere('status', 'like', "%{$search}%");
+            });
+        }
+
+        $borrowings = $query->latest()->get();
         return view('borrowings.index', compact('borrowings'));
     }
 

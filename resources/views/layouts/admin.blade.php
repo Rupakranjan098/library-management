@@ -107,17 +107,29 @@
                 </button>
             </div>
             
-            <div class="flex-1 flex justify-center max-w-lg mx-auto">
+            @php
+                $searchAction = route('books.index');
+                if (request()->routeIs('authors.*')) {
+                    $searchAction = route('authors.index');
+                } elseif (request()->routeIs('categories.*')) {
+                    $searchAction = route('categories.index');
+                } elseif (request()->routeIs('members.*')) {
+                    $searchAction = route('members.index');
+                } elseif (request()->routeIs('borrowings.*')) {
+                    $searchAction = route('borrowings.index');
+                }
+            @endphp
+            <form action="{{ $searchAction }}" method="GET" class="flex-1 flex justify-center max-w-lg mx-auto">
                 <div class="relative w-full">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <input type="text" class="w-full bg-[#1e293b] border border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Search by title, author or ISBN...">
+                    <input type="text" name="search" id="globalSearchInput" value="{{ request('search') }}" class="w-full bg-[#1e293b] border border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Search by title, author or ISBN...">
                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
                         <kbd class="hidden sm:inline-block border border-slate-700 rounded px-2 py-0.5 text-xs font-sans text-slate-500">/</kbd>
                     </div>
                 </div>
-            </div>
+            </form>
 
             <div class="flex items-center space-x-5">
                 <button class="relative text-slate-400 hover:text-white transition-colors">
@@ -201,6 +213,19 @@
         }, 4000);
     </script>
     @endif
+
+    <script>
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                const globalSearch = document.getElementById('globalSearchInput');
+                if (globalSearch) {
+                    globalSearch.focus();
+                    globalSearch.select();
+                }
+            }
+        });
+    </script>
 
 </body>
 </html>

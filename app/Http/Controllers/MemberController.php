@@ -7,9 +7,18 @@ use Illuminate\Http\Request;
 
 class MemberController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $members = \App\Models\Member::latest()->get();
+        $query = \App\Models\Member::query();
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+        }
+
+        $members = $query->latest()->get();
         return view('members.index', compact('members'));
     }
 

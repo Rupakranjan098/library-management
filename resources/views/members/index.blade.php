@@ -17,12 +17,12 @@
     <!-- Data Table -->
     <div class="dark-card rounded-2xl overflow-hidden shadow-sm">
         <div class="p-5 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/30">
-            <div class="relative w-64">
+            <form action="{{ route('members.index') }}" method="GET" class="relative w-64">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
-                <input type="text" class="w-full bg-[#0f172a] border border-slate-700 rounded-lg py-1.5 pl-9 pr-4 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Search members...">
-            </div>
+                <input type="text" name="search" value="{{ request('search') }}" class="w-full bg-[#0f172a] border border-slate-700 rounded-lg py-1.5 pl-9 pr-4 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Search members...">
+            </form>
             <div class="text-slate-400 text-sm">
                 Showing {{ $members->count() }} members
             </div>

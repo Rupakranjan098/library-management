@@ -7,9 +7,17 @@ use Illuminate\Http\Request;
 
 class AuthorController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $authors = \App\Models\Author::latest()->get();
+        $query = \App\Models\Author::query();
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('bio', 'like', "%{$search}%");
+        }
+
+        $authors = $query->latest()->get();
         return view('authors.index', compact('authors'));
     }
 
