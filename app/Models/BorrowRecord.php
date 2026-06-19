@@ -25,6 +25,13 @@ class BorrowRecord extends Model
         return $this->belongsTo(Member::class);
     }
 
+    public static function updateOverdueRecords()
+    {
+        return self::where('status', 'borrowed')
+            ->where('due_date', '<', now()->toDateString())
+            ->update(['status' => 'overdue']);
+    }
+
     public function getFineAttribute()
     {
         $dueDate = \Carbon\Carbon::parse($this->due_date);

@@ -9,7 +9,7 @@
     </div>
 
     <!-- Stats Row -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mt-6 mb-8">
         <!-- Total Books -->
         <div class="dark-card rounded-2xl p-5 flex items-center transition-transform hover:-translate-y-1 duration-300">
             <div class="w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center text-white glow-purple shrink-0 mr-4">
@@ -51,6 +51,17 @@
             <div>
                 <p class="text-slate-400 text-xs font-medium mb-1 uppercase tracking-wider">Overdue Books</p>
                 <h3 class="text-2xl font-bold text-white tracking-tight">{{ number_format($overdueBooks) }}</h3>
+            </div>
+        </div>
+
+        <!-- Total Fines -->
+        <div class="dark-card rounded-2xl p-5 flex items-center transition-transform hover:-translate-y-1 duration-300">
+            <div class="w-14 h-14 rounded-full bg-rose-600 flex items-center justify-center text-white glow-red shrink-0 mr-4">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <p class="text-slate-400 text-xs font-medium mb-1 uppercase tracking-wider">Total Fines</p>
+                <h3 class="text-2xl font-bold text-white tracking-tight">₹{{ number_format($totalFines) }}</h3>
             </div>
         </div>
     </div>

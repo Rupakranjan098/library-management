@@ -13,11 +13,15 @@ class ReportController extends Controller
 {
     public function index()
     {
+        // Automatically calculate and update overdue records
+        BorrowRecord::updateOverdueRecords();
+
         // Top level stats
         $totalBooks = Book::sum('total_copies');
         $totalMembers = Member::count();
         $booksBorrowed = BorrowRecord::where('status', 'borrowed')->count();
         $overdueBooks = BorrowRecord::where('status', 'overdue')->count();
+        $totalFines = BorrowRecord::get()->sum('fine');
 
         // Monthly trends (fake data for demonstration, or simple queries)
         $newBooksThisMonth = Book::whereMonth('created_at', Carbon::now()->month)->count() ?: 12;
@@ -59,7 +63,7 @@ class ReportController extends Controller
         ];
 
         return view('reports.index', compact(
-            'totalBooks', 'totalMembers', 'booksBorrowed', 'overdueBooks',
+            'totalBooks', 'totalMembers', 'booksBorrowed', 'overdueBooks', 'totalFines',
             'newBooksThisMonth', 'newMembersThisMonth', 'borrowedThisMonth', 'overdueThisMonth',
             'categoryLabels', 'categoryData', 'chartDates', 'chartBorrows',
             'topBooks', 'activitySummary'
@@ -68,11 +72,15 @@ class ReportController extends Controller
 
     public function export()
     {
+        // Automatically calculate and update overdue records
+        \App\Models\BorrowRecord::updateOverdueRecords();
+
         $stats = [
             'total_books' => \App\Models\Book::sum('total_copies'),
             'total_members' => \App\Models\Member::count(),
             'active_borrowings' => \App\Models\BorrowRecord::where('status', 'borrowed')->count(),
             'overdue_books' => \App\Models\BorrowRecord::where('status', 'overdue')->count(),
+            'total_fines' => \App\Models\BorrowRecord::get()->sum('fine'),
         ];
         
         $recent_borrowings = \App\Models\BorrowRecord::with(['book', 'member'])

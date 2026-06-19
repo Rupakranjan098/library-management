@@ -9,6 +9,9 @@ class BorrowRecordController extends Controller
 {
     public function index(Request $request)
     {
+        // Automatically calculate and update overdue records
+        \App\Models\BorrowRecord::updateOverdueRecords();
+
         if ($request->filled('search')) {
             $search = $request->input('search');
             $cleanSearch = str_replace(['-', ' '], '', $search);

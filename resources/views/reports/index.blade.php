@@ -27,7 +27,8 @@
     @endif
 
     <!-- Top Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <!-- Top Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
         <!-- Total Books -->
         <div class="dark-card rounded-3xl p-6 flex items-center">
             <div class="w-14 h-14 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/30">
@@ -92,6 +93,22 @@
                 <div class="text-[11px] font-medium text-red-400 flex items-center mt-1">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
                     {{ $overdueThisMonth }} this month
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Fines -->
+        <div class="dark-card rounded-3xl p-6 flex items-center">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                <span class="text-2xl font-bold">₹</span>
+            </div>
+            <div class="ml-5">
+                <p class="text-sm font-medium text-slate-400">Total Fines</p>
+                <div class="flex items-baseline">
+                    <h3 class="text-3xl font-bold text-white">₹{{ number_format($totalFines) }}</h3>
+                </div>
+                <div class="text-[11px] font-medium text-slate-500 flex items-center mt-1">
+                    Accumulated fines
                 </div>
             </div>
         </div>

@@ -19,6 +19,23 @@
             @csrf
             @method('PUT')
             
+            @if($borrowing->fine > 0)
+                <div class="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-between shadow-md">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-rose-500/20 p-2 rounded-xl border border-rose-500/30 text-rose-400">
+                            <span class="text-xl font-bold">₹</span>
+                        </div>
+                        <div>
+                            <span class="font-bold text-sm block">Overdue Fine Calculated</span>
+                            <span class="text-xs text-slate-400">This record currently has an accumulated fine of <strong>₹{{ number_format($borrowing->fine) }}</strong>.</span>
+                        </div>
+                    </div>
+                    <div class="bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-500/30 text-xs font-bold shrink-0">
+                        ₹{{ $borrowing->fine }}
+                    </div>
+                </div>
+            @endif
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Member</label>

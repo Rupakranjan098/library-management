@@ -19,7 +19,7 @@
             margin-bottom: 30px;
         }
         .stats-grid td {
-            width: 25%;
+            width: 20%;
             padding: 15px;
             text-align: center;
             background: #f8f9fa;
@@ -81,6 +81,10 @@
                 <div class="stats-value">{{ $stats['overdue_books'] }}</div>
                 <div class="stats-label">Overdue Books</div>
             </td>
+            <td>
+                <div class="stats-value">₹{{ number_format($stats['total_fines']) }}</div>
+                <div class="stats-label">Total Fines</div>
+            </td>
         </tr>
     </table>
 
@@ -93,6 +97,7 @@
                 <th>Borrow Date</th>
                 <th>Due Date</th>
                 <th>Status</th>
+                <th>Fine</th>
             </tr>
         </thead>
         <tbody>
@@ -103,6 +108,7 @@
                 <td>{{ \Carbon\Carbon::parse($record->borrow_date)->format('M d, Y') }}</td>
                 <td>{{ \Carbon\Carbon::parse($record->due_date)->format('M d, Y') }}</td>
                 <td class="status-{{ $record->status }}">{{ ucfirst($record->status) }}</td>
+                <td>₹{{ number_format($record->fine) }}</td>
             </tr>
             @endforeach
         </tbody>
