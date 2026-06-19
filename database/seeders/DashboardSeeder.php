@@ -39,7 +39,7 @@ class DashboardSeeder extends Seeder
                 $status = 'returned';
                 
                 // If it is borrowed recently (within last borrow duration days), it's a standard 'borrowed' record
-                if ($daysSinceBorrow <= ($borrowDuration - 1)) {
+                if ($daysSinceBorrow <= $borrowDuration) {
                     // 70% chance of 'borrowed', 30% chance of 'returned' early
                     $status = rand(1, 10) <= 7 ? 'borrowed' : 'returned';
                 } else {
