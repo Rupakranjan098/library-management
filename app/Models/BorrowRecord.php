@@ -34,16 +34,16 @@ class BorrowRecord extends Model
 
     public function getFineAttribute()
     {
-        $dueDate = \Carbon\Carbon::parse($this->due_date);
+        $dueDate = \Carbon\Carbon::parse($this->due_date)->startOfDay();
         
         if ($this->status === 'returned') {
-            $endDate = $this->return_date ? \Carbon\Carbon::parse($this->return_date) : now();
+            $endDate = $this->return_date ? \Carbon\Carbon::parse($this->return_date)->startOfDay() : now()->startOfDay();
         } else {
-            $endDate = now();
+            $endDate = now()->startOfDay();
         }
 
         if ($endDate->greaterThan($dueDate)) {
-            $daysOverdue = $endDate->diffInDays($dueDate);
+            $daysOverdue = (int) abs($endDate->diffInDays($dueDate));
             return $daysOverdue * 5; // 5 RS per day
         }
 
