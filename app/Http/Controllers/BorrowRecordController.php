@@ -47,11 +47,25 @@ class BorrowRecordController extends Controller
     {
         $validated = $request->validate([
             'book_id' => 'required|exists:books,id',
-            'member_id' => 'required|exists:members,id',
+            'member_name' => 'required|string|max:255',
             'borrow_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:borrow_date',
             'status' => 'required|in:borrowed,returned,overdue',
         ]);
+
+        $memberName = $validated['member_name'];
+        $member = \App\Models\Member::where('name', $memberName)->first();
+        if (!$member) {
+            $email = strtolower(str_replace(' ', '.', $memberName)) . '-' . rand(100, 999) . '@example.com';
+            $member = \App\Models\Member::create([
+                'name' => $memberName,
+                'email' => $email,
+                'phone' => '0000000000',
+                'membership_expiry' => now()->addYear()->toDateString(),
+            ]);
+        }
+        $validated['member_id'] = $member->id;
+        unset($validated['member_name']);
 
         $book = \App\Models\Book::findOrFail($validated['book_id']);
 
@@ -91,11 +105,25 @@ class BorrowRecordController extends Controller
         
         $validated = $request->validate([
             'book_id' => 'required|exists:books,id',
-            'member_id' => 'required|exists:members,id',
+            'member_name' => 'required|string|max:255',
             'borrow_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:borrow_date',
             'status' => 'required|in:borrowed,returned,overdue',
         ]);
+
+        $memberName = $validated['member_name'];
+        $member = \App\Models\Member::where('name', $memberName)->first();
+        if (!$member) {
+            $email = strtolower(str_replace(' ', '.', $memberName)) . '-' . rand(100, 999) . '@example.com';
+            $member = \App\Models\Member::create([
+                'name' => $memberName,
+                'email' => $email,
+                'phone' => '0000000000',
+                'membership_expiry' => now()->addYear()->toDateString(),
+            ]);
+        }
+        $validated['member_id'] = $member->id;
+        unset($validated['member_name']);
 
         $oldStatus = $borrowRecord->status;
         $newStatus = $validated['status'];
