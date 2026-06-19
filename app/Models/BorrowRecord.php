@@ -34,13 +34,12 @@ class BorrowRecord extends Model
 
     public function getDaysOverdueAttribute()
     {
-        $dueDate = \Carbon\Carbon::parse($this->due_date)->startOfDay();
-        
         if ($this->status === 'returned') {
-            $endDate = $this->return_date ? \Carbon\Carbon::parse($this->return_date)->startOfDay() : now()->startOfDay();
-        } else {
-            $endDate = now()->startOfDay();
+            return 0;
         }
+
+        $dueDate = \Carbon\Carbon::parse($this->due_date)->startOfDay();
+        $endDate = now()->startOfDay();
 
         if ($endDate->greaterThan($dueDate)) {
             return (int) abs($endDate->diffInDays($dueDate));
