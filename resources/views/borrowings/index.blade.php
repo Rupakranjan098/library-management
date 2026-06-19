@@ -73,7 +73,10 @@
                         </td>
                         <td class="px-6 py-4">
                             @if($record->fine > 0)
-                                <span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">₹{{ $record->fine }}</span>
+                                <div class="flex flex-col">
+                                    <span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 w-max">₹{{ $record->fine }}</span>
+                                    <span class="text-[10px] text-slate-500 mt-1 font-medium">{{ $record->days_overdue }} {{ $record->days_overdue == 1 ? 'day' : 'days' }} late</span>
+                                </div>
                             @else
                                 <span class="text-slate-500 text-xs">-</span>
                             @endif

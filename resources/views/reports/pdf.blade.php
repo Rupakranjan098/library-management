@@ -108,7 +108,13 @@
                 <td>{{ \Carbon\Carbon::parse($record->borrow_date)->format('M d, Y') }}</td>
                 <td>{{ \Carbon\Carbon::parse($record->due_date)->format('M d, Y') }}</td>
                 <td class="status-{{ $record->status }}">{{ ucfirst($record->status) }}</td>
-                <td>₹{{ number_format($record->fine) }}</td>
+                <td>
+                    @if($record->fine > 0)
+                        ₹{{ number_format($record->fine) }} ({{ $record->days_overdue }} {{ $record->days_overdue == 1 ? 'day' : 'days' }} late)
+                    @else
+                        -
+                    @endif
+                </td>
             </tr>
             @endforeach
         </tbody>

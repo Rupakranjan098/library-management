@@ -32,7 +32,7 @@ class BorrowRecord extends Model
             ->update(['status' => 'overdue']);
     }
 
-    public function getFineAttribute()
+    public function getDaysOverdueAttribute()
     {
         $dueDate = \Carbon\Carbon::parse($this->due_date)->startOfDay();
         
@@ -43,10 +43,14 @@ class BorrowRecord extends Model
         }
 
         if ($endDate->greaterThan($dueDate)) {
-            $daysOverdue = (int) abs($endDate->diffInDays($dueDate));
-            return $daysOverdue * 5; // 5 RS per day
+            return (int) abs($endDate->diffInDays($dueDate));
         }
 
         return 0;
+    }
+
+    public function getFineAttribute()
+    {
+        return $this->days_overdue * 5; // 5 RS per day
     }
 }
