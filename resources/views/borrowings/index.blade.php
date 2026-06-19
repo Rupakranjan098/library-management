@@ -36,6 +36,7 @@
                         <th class="px-6 py-4 font-medium">Book</th>
                         <th class="px-6 py-4 font-medium">Issue & Due Date</th>
                         <th class="px-6 py-4 font-medium">Status</th>
+                        <th class="px-6 py-4 font-medium">Fine</th>
                         <th class="px-6 py-4 font-medium text-right">Actions</th>
                     </tr>
                 </thead>
@@ -70,6 +71,13 @@
                                 <span class="px-2.5 py-1 rounded-md text-[10px] font-semibold bg-green-500/10 text-green-400 border border-green-500/20">Returned</span>
                             @endif
                         </td>
+                        <td class="px-6 py-4">
+                            @if($record->fine > 0)
+                                <span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">₹{{ $record->fine }}</span>
+                            @else
+                                <span class="text-slate-500 text-xs">-</span>
+                            @endif
+                        </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <a href="{{ route('borrowings.edit', $record) }}" class="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded transition-colors">
@@ -87,7 +95,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="py-8 text-center text-slate-500">No borrowing records found.</td>
+                        <td colspan="6" class="py-8 text-center text-slate-500">No borrowing records found.</td>
                     </tr>
                     @endforelse
                 </tbody>

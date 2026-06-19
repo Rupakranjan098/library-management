@@ -80,7 +80,7 @@ class PublicCatalogController extends Controller
             'book_id' => $book->id,
             'member_id' => $request->member_id,
             'borrow_date' => now()->toDateString(),
-            'due_date' => now()->addDays(14)->toDateString(),
+            'due_date' => now()->addDays(5)->toDateString(),
             'status' => 'borrowed',
         ]);
 

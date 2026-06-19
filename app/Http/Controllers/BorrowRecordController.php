@@ -59,6 +59,12 @@ class BorrowRecordController extends Controller
             $book->decrement('available_copies');
         }
 
+        if ($validated['status'] === 'returned') {
+            $validated['return_date'] = now()->toDateString();
+        } else {
+            $validated['return_date'] = null;
+        }
+
         BorrowRecord::create($validated);
 
         return redirect()->route('borrowings.index')->with('success', 'Borrowing record created successfully!');
@@ -119,6 +125,16 @@ class BorrowRecordController extends Controller
                 }
                 $book->decrement('available_copies');
             }
+        }
+
+        if ($newStatus === 'returned') {
+            if (!$borrowRecord->return_date) {
+                $validated['return_date'] = now()->toDateString();
+            } else {
+                $validated['return_date'] = $borrowRecord->return_date;
+            }
+        } else {
+            $validated['return_date'] = null;
         }
 
         $borrowRecord->update($validated);
