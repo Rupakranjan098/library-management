@@ -26,8 +26,8 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">ISBN</label>
-                    <input type="text" name="isbn" value="{{ $book->isbn }}" required class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    <label class="block text-sm font-medium text-slate-300 mb-2">ISBN (Optional)</label>
+                    <input type="text" name="isbn" value="{{ $book->isbn }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Enter ISBN if available">
                 </div>
 
                 <div>

@@ -6,6 +6,9 @@
     <title>@yield('title', 'Library Management Dashboard')</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     @stack('scripts')
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
@@ -23,6 +26,57 @@
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Laravel Pagination Styles override */
+        .pagination {
+            display: inline-flex;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            border: 1px solid #334155;
+            background-color: #1e293b;
+        }
+        .page-item {
+            display: inline;
+        }
+        .page-link {
+            display: block;
+            padding: 0.5rem 1rem;
+            color: #cbd5e1;
+            background-color: transparent;
+            border: none;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .page-item.active .page-link {
+            background-color: #4f46e5;
+            color: white;
+        }
+        .page-item.disabled .page-link {
+            color: #475569;
+            pointer-events: none;
+        }
+        .page-link:hover:not(.disabled) {
+            background-color: #334155;
+            color: white;
+        }
+        .pagination-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .pagination-info {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 500;
+        }
 
         @stack('styles')
     </style>
@@ -49,13 +103,25 @@
                 <svg class="w-5 h-5 mr-3 {{ request()->routeIs('authors.*') ? '' : 'group-hover:text-white transition-colors' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                 <span class="font-medium text-sm tracking-wide">Authors</span>
             </a>
-            <a href="{{ route('books.index') }}" class="flex items-center px-4 py-3 {{ request()->routeIs('books.*') ? 'bg-indigo-600 text-white shadow-[0_4px_15px_rgba(79,70,229,0.3)]' : 'hover:bg-slate-800 text-slate-400 hover:text-white' }} rounded-xl transition-colors group">
-                <svg class="w-5 h-5 mr-3 {{ request()->routeIs('books.*') ? '' : 'group-hover:text-white transition-colors' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            <a href="{{ route('books.index') }}" class="flex items-center px-4 py-3 {{ request()->routeIs('books.index') || request()->routeIs('books.show') || request()->routeIs('books.edit') || request()->routeIs('books.create') ? 'bg-indigo-600 text-white shadow-[0_4px_15px_rgba(79,70,229,0.3)]' : 'hover:bg-slate-800 text-slate-400 hover:text-white' }} rounded-xl transition-colors group">
+                <svg class="w-5 h-5 mr-3 {{ request()->routeIs('books.index') ? '' : 'group-hover:text-white transition-colors' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                 <span class="font-medium text-sm tracking-wide">Books</span>
             </a>
-            <a href="{{ route('borrowings.index') }}" class="flex items-center px-4 py-3 {{ request()->routeIs('borrowings.*') ? 'bg-indigo-600 text-white shadow-[0_4px_15px_rgba(79,70,229,0.3)]' : 'hover:bg-slate-800 text-slate-400 hover:text-white' }} rounded-xl transition-colors group">
-                <svg class="w-5 h-5 mr-3 {{ request()->routeIs('borrowings.*') ? '' : 'group-hover:text-white transition-colors' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                <span class="font-medium text-sm tracking-wide">Borrow Records</span>
+            <a href="{{ route('books.generate-barcodes') }}" class="flex items-center px-4 py-3 {{ request()->routeIs('books.generate-barcodes') ? 'bg-indigo-600 text-white shadow-[0_4px_15px_rgba(79,70,229,0.3)]' : 'hover:bg-slate-800 text-slate-400 hover:text-white' }} rounded-xl transition-colors group">
+                <svg class="w-5 h-5 mr-3 {{ request()->routeIs('books.generate-barcodes') ? '' : 'group-hover:text-white transition-colors' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span class="font-medium text-sm tracking-wide">Generate Barcodes</span>
+            </a>
+            <a href="{{ route('books.lookup') }}" class="flex items-center px-4 py-3 {{ request()->routeIs('books.lookup') ? 'bg-indigo-600 text-white shadow-[0_4px_15px_rgba(79,70,229,0.3)]' : 'hover:bg-slate-800 text-slate-400 hover:text-white' }} rounded-xl transition-colors group">
+                <svg class="w-5 h-5 mr-3 {{ request()->routeIs('books.lookup') ? '' : 'group-hover:text-white transition-colors' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <span class="font-medium text-sm tracking-wide">Barcode Lookup</span>
+            </a>
+            <a href="{{ route('circulation.index') }}" class="flex items-center px-4 py-3 {{ request()->routeIs('circulation.index') || request()->routeIs('circulation.issue') || request()->routeIs('circulation.return') ? 'bg-indigo-600 text-white shadow-[0_4px_15px_rgba(79,70,229,0.3)]' : 'hover:bg-slate-800 text-slate-400 hover:text-white' }} rounded-xl transition-colors group">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                <span class="font-medium text-sm tracking-wide">Circulation</span>
+            </a>
+            <a href="{{ route('circulation.overdue') }}" class="flex items-center px-4 py-3 {{ request()->routeIs('circulation.overdue') ? 'bg-indigo-600 text-white shadow-[0_4px_15px_rgba(79,70,229,0.3)]' : 'hover:bg-slate-800 text-slate-400 hover:text-white' }} rounded-xl transition-colors group">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M3 19h18a1 1 0 00.728-1.686L12.728 3.314a1 1 0 00-1.456 0L2.272 17.314A1 1 0 003 19z"></path></svg>
+                <span class="font-medium text-sm tracking-wide">Overdue Dashboard</span>
             </a>
             <a href="{{ route('categories.index') }}" class="flex items-center px-4 py-3 {{ request()->routeIs('categories.*') ? 'bg-indigo-600 text-white shadow-[0_4px_15px_rgba(79,70,229,0.3)]' : 'hover:bg-slate-800 text-slate-400 hover:text-white' }} rounded-xl transition-colors group">
                 <svg class="w-5 h-5 mr-3 {{ request()->routeIs('categories.*') ? '' : 'group-hover:text-white transition-colors' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
@@ -124,7 +190,7 @@
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <input type="text" name="search" id="globalSearchInput" value="{{ request('search') }}" class="w-full bg-[#1e293b] border border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Search by title, author or ISBN...">
+                    <input type="text" name="search" id="globalSearchInput" value="{{ request('search') }}" class="w-full bg-[#1e293b] border border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Search by title, author or Barcode...">
                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
                         <kbd class="hidden sm:inline-block border border-slate-700 rounded px-2 py-0.5 text-xs font-sans text-slate-500">/</kbd>
                     </div>
@@ -216,16 +282,21 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Flatpickr datepickers
+            flatpickr(".datepicker", {
+                dateFormat: "Y-m-d",
+                allowInput: true
+            });
+
             const form = document.getElementById('globalSearchForm');
             if (form) {
                 form.addEventListener('submit', function(e) {
                     const input = document.getElementById('globalSearchInput');
                     if (input) {
                         const query = input.value.trim();
-                        const cleanQuery = query.replace(/[- ]/g, '');
-                        // Detect if search query is a valid ISBN-10, ISBN-13, or a generic numeric search (e.g. partial ISBN)
-                        const isIsbn = /^(?:\d{9}[\dX]|\d{13})$/i.test(cleanQuery) || (/^\d+$/.test(cleanQuery) && cleanQuery.length >= 8);
-                        if (isIsbn) {
+                        // Detect if search query is a valid barcode (starts with LIB-)
+                        const isBarcode = /^LIB-\d+$/i.test(query);
+                        if (isBarcode) {
                             this.action = "{{ route('books.index') }}";
                         }
                     }

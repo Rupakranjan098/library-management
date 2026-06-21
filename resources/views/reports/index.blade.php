@@ -132,7 +132,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                     </div>
-                    <input type="text" name="date_range" value="{{ request('date_range', 'May 01, 2024 - May 24, 2024') }}" class="w-full md:w-64 bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    <input type="text" name="date_range" value="{{ request('date_range', $formattedRange) }}" class="w-full md:w-64 bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
                 </div>
             </div>
         </div>
@@ -144,6 +144,7 @@
         </div>
     </form>
 
+    @if($reportType === 'All Reports')
     <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <!-- Line Chart -->
@@ -299,15 +300,205 @@
             </div>
             
             <div class="mt-4 pt-4 border-t border-slate-700/50 text-center">
-                <a href="{{ route('borrowings.index') }}" class="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider">View Detailed Report</a>
+                <a href="{{ route('circulation.index') }}" class="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider">View Detailed Report</a>
             </div>
         </div>
     </div>
+    @elseif($reportType === 'Borrowing History')
+    <!-- Borrowing History Report Table -->
+    <div class="dark-card rounded-3xl overflow-hidden shadow-sm">
+        <div class="p-6 border-b border-slate-700/50 bg-slate-800/30 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-white">Borrowing History Log</h3>
+            <span class="text-xs text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full font-semibold">
+                {{ $reportData->count() }} records
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-slate-400 text-xs uppercase tracking-wider bg-slate-800/20 border-b border-slate-700/80">
+                        <th class="px-6 py-4 font-medium">Book Details</th>
+                        <th class="px-6 py-4 font-medium">Member Details</th>
+                        <th class="px-6 py-4 font-medium">Issue Date</th>
+                        <th class="px-6 py-4 font-medium">Due Date</th>
+                        <th class="px-6 py-4 font-medium">Return Date</th>
+                        <th class="px-6 py-4 font-medium">Status</th>
+                        <th class="px-6 py-4 font-medium text-right">Fine</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm divide-y divide-slate-700/50">
+                    @forelse($reportData as $record)
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-8 h-10 rounded bg-indigo-500/10 flex flex-col items-center justify-center text-indigo-400 mr-3 border border-indigo-500/20 shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-200">{{ $record->book->title ?? 'Unknown Book' }}</span>
+                                    <div class="text-xs text-slate-500 font-mono">{{ $record->bookCopy->barcode_id ?? 'N/A' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div>
+                                <span class="font-semibold text-slate-200">{{ $record->member->name ?? 'Unknown Member' }}</span>
+                                <div class="text-xs text-slate-500">{{ $record->member->email ?? '' }}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-slate-300">{{ $record->issue_date->format('Y-m-d') }}</td>
+                        <td class="px-6 py-4 text-slate-300">{{ $record->due_date->format('Y-m-d') }}</td>
+                        <td class="px-6 py-4 text-slate-300">{{ $record->return_date ? $record->return_date->format('Y-m-d') : '-' }}</td>
+                        <td class="px-6 py-4">
+                            @php
+                                $badgeClass = match($record->status) {
+                                    'Issued' => 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+                                    'Returned' => 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                                    'Overdue' => 'bg-rose-500/10 text-rose-400 border border-rose-500/20 glow-orange',
+                                    'Lost' => 'bg-slate-500/15 text-slate-400 border border-slate-700',
+                                    default => 'bg-slate-700/50 text-slate-300 border border-slate-600',
+                                };
+                            @endphp
+                            <span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider {{ $badgeClass }}">
+                                {{ $record->status }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right font-mono font-bold {{ $record->fine_amount > 0 ? 'text-rose-400' : 'text-slate-500' }}">
+                            ₹{{ number_format($record->fine_amount, 2) }}
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-500 font-medium">No borrowing records found for this period.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @elseif($reportType === 'Inventory Status')
+    <!-- Inventory Status Report Table -->
+    <div class="dark-card rounded-3xl overflow-hidden shadow-sm">
+        <div class="p-6 border-b border-slate-700/50 bg-slate-800/30 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-white">Book Inventory Status</h3>
+            <span class="text-xs text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full font-semibold">
+                {{ $reportData->count() }} books
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-slate-400 text-xs uppercase tracking-wider bg-slate-800/20 border-b border-slate-700/80">
+                        <th class="px-6 py-4 font-medium">Title & Author</th>
+                        <th class="px-6 py-4 font-medium">Category</th>
+                        <th class="px-6 py-4 font-medium">ISBN</th>
+                        <th class="px-6 py-4 font-medium text-center">Total Copies</th>
+                        <th class="px-6 py-4 font-medium text-center">Available</th>
+                        <th class="px-6 py-4 font-medium text-center">Issued</th>
+                        <th class="px-6 py-4 font-medium text-center">Overdue</th>
+                        <th class="px-6 py-4 font-medium text-center">Retired</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm divide-y divide-slate-700/50">
+                    @forelse($reportData as $book)
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-8 h-10 rounded bg-indigo-500/10 flex flex-col items-center justify-center text-indigo-400 mr-3 border border-indigo-500/20 shrink-0">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-200">{{ $book->title }}</span>
+                                    <div class="text-xs text-slate-500">{{ $book->author->name ?? 'Unknown Author' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-700/50 text-slate-300 border border-slate-600">
+                                {{ $book->category->name ?? 'General' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-mono text-xs text-slate-400">{{ $book->isbn }}</td>
+                        <td class="px-6 py-4 text-center font-bold text-slate-200">{{ $book->copies->count() }}</td>
+                        <td class="px-6 py-4 text-center text-emerald-400 font-semibold">{{ $book->copies->where('status', 'Available')->count() }}</td>
+                        <td class="px-6 py-4 text-center text-blue-400 font-semibold">{{ $book->copies->where('status', 'Issued')->count() }}</td>
+                        <td class="px-6 py-4 text-center text-rose-400 font-semibold">{{ $book->copies->where('status', 'Overdue')->count() }}</td>
+                        <td class="px-6 py-4 text-center text-slate-500">{{ $book->copies->where('status', 'Retired')->count() }}</td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-slate-500 font-medium">No book catalog data available.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @elseif($reportType === 'Member Activity')
+    <!-- Member Activity Report Table -->
+    <div class="dark-card rounded-3xl overflow-hidden shadow-sm">
+        <div class="p-6 border-b border-slate-700/50 bg-slate-800/30 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-white">Member Activity Log</h3>
+            <span class="text-xs text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full font-semibold">
+                {{ $reportData->count() }} members
+            </span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-slate-400 text-xs uppercase tracking-wider bg-slate-800/20 border-b border-slate-700/80">
+                        <th class="px-6 py-4 font-medium">Member Details</th>
+                        <th class="px-6 py-4 font-medium">Email</th>
+                        <th class="px-6 py-4 font-medium text-center">Books Checked Out</th>
+                        <th class="px-6 py-4 font-medium text-center">Active Borrowings</th>
+                        <th class="px-6 py-4 font-medium text-center">Overdue Books</th>
+                        <th class="px-6 py-4 font-medium text-right">Fines Incurred</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm divide-y divide-slate-700/50">
+                    @forelse($reportData as $member)
+                    <tr class="hover:bg-slate-800/30 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs mr-3">
+                                    {{ substr($member->name, 0, 1) }}
+                                </div>
+                                <span class="font-bold text-slate-200">{{ $member->name }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-slate-400 text-xs">{{ $member->email }}</td>
+                        <td class="px-6 py-4 text-center font-semibold text-slate-300">{{ $member->borrowings_count }}</td>
+                        <td class="px-6 py-4 text-center font-semibold text-blue-400">{{ $member->active_borrowings_count }}</td>
+                        <td class="px-6 py-4 text-center font-semibold text-rose-400">{{ $member->overdue_borrowings_count ?? 0 }}</td>
+                        <td class="px-6 py-4 text-right font-mono font-bold {{ $member->total_fines > 0 ? 'text-rose-400' : 'text-slate-500' }}">
+                            ₹{{ number_format($member->total_fines ?? 0, 2) }}
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-500 font-medium">No member activity recorded.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 
     <!-- Add Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
+            // Initialize Flatpickr date range picker
+            flatpickr('input[name="date_range"]', {
+                mode: "range",
+                dateFormat: "Y-m-d",
+                allowInput: true,
+                theme: "dark"
+            });
+
             // Setup common chart styling for dark theme
             Chart.defaults.color = '#94a3b8';
             Chart.defaults.font.family = 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';

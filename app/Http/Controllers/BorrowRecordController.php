@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\BorrowRecord;
+use App\Models\BookCopy;
+use App\Models\Book;
 use Illuminate\Http\Request;
 
 class BorrowRecordController extends Controller
@@ -14,8 +16,7 @@ class BorrowRecordController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->input('search');
-            $cleanSearch = str_replace(['-', ' '], '', $search);
-            if (preg_match('/^(?:\d{9}[\dX]|\d{13})$/i', $cleanSearch) || (ctype_digit($cleanSearch) && strlen($cleanSearch) >= 8)) {
+            if (str_starts_with(strtoupper($search), 'LIB-')) {
                 return redirect()->route('books.index', ['search' => $search]);
             }
         }
@@ -27,7 +28,9 @@ class BorrowRecordController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->whereHas('book', function ($bq) use ($search) {
                     $bq->where('title', 'like', "%{$search}%")
-                       ->orWhere('isbn', 'like', "%{$search}%");
+                       ->orWhereHas('copies', function ($cq) use ($search) {
+                           $cq->where('barcode_id', 'like', "%{$search}%");
+                       });
                 })->orWhereHas('member', function ($mq) use ($search) {
                     $mq->where('name', 'like', "%{$search}%");
                 })->orWhere('status', 'like', "%{$search}%");
@@ -45,6 +48,16 @@ class BorrowRecordController extends Controller
 
     public function store(Request $request)
     {
+        if ($request->filled('barcode_id')) {
+            $copy = BookCopy::where('barcode_id', $request->input('barcode_id'))->first();
+            $book = $copy ? $copy->book : null;
+            if ($book) {
+                $request->merge(['book_id' => $book->id]);
+            } else {
+                return back()->withErrors(['barcode_id' => 'No book found with the scanned barcode ID.'])->withInput();
+            }
+        }
+
         $validated = $request->validate([
             'book_id' => 'required|exists:books,id',
             'member_name' => 'required|string|max:255',
@@ -70,10 +83,14 @@ class BorrowRecordController extends Controller
         $book = \App\Models\Book::findOrFail($validated['book_id']);
 
         if (in_array($validated['status'], ['borrowed', 'overdue'])) {
-            if ($book->available_copies <= 0) {
+            $availableCopies = $book->copies()->where('status', 'Available')->count();
+            if ($availableCopies <= 0) {
                 return back()->withErrors(['book_id' => 'This book is currently out of stock.'])->withInput();
             }
-            $book->decrement('available_copies');
+            $copy = $book->copies()->where('status', 'Available')->first();
+            if ($copy) {
+                $copy->update(['status' => 'Issued']);
+            }
         }
 
         if ($validated['status'] === 'returned') {
@@ -103,6 +120,16 @@ class BorrowRecordController extends Controller
     {
         $borrowRecord = BorrowRecord::findOrFail($id);
         
+        if ($request->filled('barcode_id')) {
+            $copy = BookCopy::where('barcode_id', $request->input('barcode_id'))->first();
+            $book = $copy ? $copy->book : null;
+            if ($book) {
+                $request->merge(['book_id' => $book->id]);
+            } else {
+                return back()->withErrors(['barcode_id' => 'No book found with the scanned barcode ID.'])->withInput();
+            }
+        }
+
         $validated = $request->validate([
             'book_id' => 'required|exists:books,id',
             'member_name' => 'required|string|max:255',
@@ -136,25 +163,39 @@ class BorrowRecordController extends Controller
 
             if (in_array($oldStatus, ['borrowed', 'overdue'])) {
                 if ($oldBook) {
-                    $oldBook->increment('available_copies');
+                    $copy = $oldBook->copies()->where('status', 'Issued')->first();
+                    if ($copy) {
+                        $copy->update(['status' => 'Available']);
+                    }
                 }
             }
 
             if (in_array($newStatus, ['borrowed', 'overdue'])) {
-                if ($newBook->available_copies <= 0) {
+                $availableCopies = $newBook->copies()->where('status', 'Available')->count();
+                if ($availableCopies <= 0) {
                     return back()->withErrors(['book_id' => 'The newly selected book is currently out of stock.'])->withInput();
                 }
-                $newBook->decrement('available_copies');
+                $copy = $newBook->copies()->where('status', 'Available')->first();
+                if ($copy) {
+                    $copy->update(['status' => 'Issued']);
+                }
             }
         } else {
             $book = \App\Models\Book::findOrFail($newBookId);
             if (in_array($oldStatus, ['borrowed', 'overdue']) && $newStatus === 'returned') {
-                $book->increment('available_copies');
+                $copy = $book->copies()->where('status', 'Issued')->first();
+                if ($copy) {
+                    $copy->update(['status' => 'Available']);
+                }
             } elseif ($oldStatus === 'returned' && in_array($newStatus, ['borrowed', 'overdue'])) {
-                if ($book->available_copies <= 0) {
+                $availableCopies = $book->copies()->where('status', 'Available')->count();
+                if ($availableCopies <= 0) {
                     return back()->withErrors(['status' => 'No copies of this book are available to be borrowed.'])->withInput();
                 }
-                $book->decrement('available_copies');
+                $copy = $book->copies()->where('status', 'Available')->first();
+                if ($copy) {
+                    $copy->update(['status' => 'Issued']);
+                }
             }
         }
 
@@ -180,7 +221,10 @@ class BorrowRecordController extends Controller
         if (in_array($borrowRecord->status, ['borrowed', 'overdue'])) {
             $book = \App\Models\Book::find($borrowRecord->book_id);
             if ($book) {
-                $book->increment('available_copies');
+                $copy = $book->copies()->where('status', 'Issued')->first();
+                if ($copy) {
+                    $copy->update(['status' => 'Available']);
+                }
             }
         }
 

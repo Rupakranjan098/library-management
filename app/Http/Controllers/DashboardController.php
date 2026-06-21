@@ -11,7 +11,7 @@ class DashboardController extends Controller
         // Automatically calculate and update overdue records
         \App\Models\BorrowRecord::updateOverdueRecords();
 
-        $totalBooks = \App\Models\Book::sum('total_copies');
+        $totalBooks = \App\Models\BookCopy::where('status', '!=', 'Retired')->count();
         $totalMembers = \App\Models\Member::count();
         $borrowedBooks = \App\Models\BorrowRecord::where('status', 'borrowed')->count();
         $overdueBooks = \App\Models\BorrowRecord::where('status', 'overdue')->count();

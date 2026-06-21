@@ -294,7 +294,7 @@
                             <span class="text-[9px] font-bold text-white/50 uppercase tracking-widest leading-none mb-2">{{ $book->author->name ?? 'Author' }}</span>
                             <h4 class="text-white font-extrabold text-base leading-tight relative z-10 px-2 line-clamp-3">{{ $book->title }}</h4>
                             <div class="absolute bottom-3 left-3 right-3 flex justify-between items-center z-10">
-                                <span class="text-[8px] bg-white/10 px-2 py-0.5 rounded text-white/70 border border-white/10 font-bold tracking-wide">ISBN: {{ $book->isbn }}</span>
+                                <span class="text-[8px] bg-white/10 px-2 py-0.5 rounded text-white/70 border border-white/10 font-bold tracking-wide">Barcode: {{ $book->barcode_id }}</span>
                             </div>
                         </div>
 

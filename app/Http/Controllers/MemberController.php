@@ -44,6 +44,9 @@ class MemberController extends Controller
             'membership_date' => 'required|date',
         ]);
 
+        $membershipDate = \Carbon\Carbon::parse($validated['membership_date']);
+        $validated['membership_expiry'] = $membershipDate->addYear()->toDateString();
+
         Member::create($validated);
 
         return redirect()->route('members.index')->with('success', 'Member added successfully!');
@@ -51,7 +54,7 @@ class MemberController extends Controller
 
     public function show(Member $member)
     {
-        $member->load('borrowRecords');
+        $member->load(['borrowRecords', 'transactions.book']);
         return view('members.show', compact('member'));
     }
 
@@ -69,6 +72,9 @@ class MemberController extends Controller
             'membership_date' => 'required|date',
         ]);
 
+        $membershipDate = \Carbon\Carbon::parse($validated['membership_date']);
+        $validated['membership_expiry'] = $membershipDate->addYear()->toDateString();
+
         $member->update($validated);
 
         return redirect()->route('members.index')->with('success', 'Member updated successfully!');
@@ -79,5 +85,17 @@ class MemberController extends Controller
         $member->delete();
 
         return redirect()->route('members.index')->with('success', 'Member deleted successfully!');
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:members,id',
+        ]);
+
+        \App\Models\Member::whereIn('id', $validated['ids'])->delete();
+
+        return redirect()->route('members.index')->with('success', 'Selected members deleted successfully!');
     }
 }

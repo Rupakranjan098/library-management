@@ -37,7 +37,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Membership Date</label>
-                    <input type="date" name="membership_date" value="{{ \Carbon\Carbon::parse($member->membership_date)->format('Y-m-d') }}" required class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    <input type="text" name="membership_date" value="{{ \Carbon\Carbon::parse($member->membership_date)->format('Y-m-d') }}" required class="datepicker w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="YYYY-MM-DD">
                 </div>
             </div>
 

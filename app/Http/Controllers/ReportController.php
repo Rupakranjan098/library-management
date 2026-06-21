@@ -11,45 +11,81 @@ use Carbon\Carbon;
 
 class ReportController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // Automatically calculate and update overdue records
-        BorrowRecord::updateOverdueRecords();
+        \App\Models\Transaction::where('status', 'Issued')
+            ->where('due_date', '<', now())
+            ->each(function ($transaction) {
+                $transaction->update(['status' => 'Overdue']);
+                if ($transaction->bookCopy) {
+                    $transaction->bookCopy->update(['status' => 'Overdue']);
+                }
+            });
 
         // Top level stats
-        $totalBooks = Book::sum('total_copies');
+        $totalBooks = \App\Models\BookCopy::where('status', '!=', 'Retired')->count();
         $totalMembers = Member::count();
-        $booksBorrowed = BorrowRecord::where('status', 'borrowed')->count();
-        $overdueBooks = BorrowRecord::where('status', 'overdue')->count();
-        $totalFines = BorrowRecord::get()->sum('fine');
+        $booksBorrowed = \App\Models\Transaction::whereIn('status', ['Issued', 'Overdue'])->count();
+        $overdueBooks = \App\Models\Transaction::where('status', 'Overdue')->count();
+        $totalFines = \App\Models\Transaction::sum('fine_amount');
 
-        // Monthly trends (fake data for demonstration, or simple queries)
-        $newBooksThisMonth = Book::whereMonth('created_at', Carbon::now()->month)->count() ?: 12;
-        $newMembersThisMonth = Member::whereMonth('created_at', Carbon::now()->month)->count() ?: 18;
-        $borrowedThisMonth = BorrowRecord::whereMonth('borrow_date', Carbon::now()->month)->count() ?: 9;
-        $overdueThisMonth = BorrowRecord::where('status', 'overdue')->whereMonth('due_date', Carbon::now()->month)->count() ?: 6;
+        // Parse date range
+        $startDate = Carbon::now()->startOfMonth();
+        $endDate = Carbon::now()->endOfDay();
+
+        if ($request->filled('date_range')) {
+            $parts = explode(' to ', $request->input('date_range'));
+            if (count($parts) === 2) {
+                try {
+                    $startDate = Carbon::parse($parts[0])->startOfDay();
+                    $endDate = Carbon::parse($parts[1])->endOfDay();
+                } catch (\Exception $e) {}
+            }
+        }
+        $formattedRange = $startDate->format('Y-m-d') . ' to ' . $endDate->format('Y-m-d');
+
+        // Monthly trends
+        $newBooksThisMonth = Book::whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->count();
+        $newMembersThisMonth = Member::whereMonth('created_at', Carbon::now()->month)
+            ->whereYear('created_at', Carbon::now()->year)
+            ->count();
+        $borrowedThisMonth = \App\Models\Transaction::whereMonth('issue_date', Carbon::now()->month)
+            ->whereYear('issue_date', Carbon::now()->year)
+            ->count();
+        $overdueThisMonth = \App\Models\Transaction::where('status', 'Overdue')
+            ->whereMonth('due_date', Carbon::now()->month)
+            ->whereYear('due_date', Carbon::now()->year)
+            ->count();
 
         // Books by Category for Donut Chart
         $categories = Category::withCount('books')->get();
         $categoryLabels = $categories->pluck('name')->toArray();
         $categoryData = $categories->pluck('books_count')->toArray();
 
-        // If data is empty because of simple seeder, provide fallbacks
-        if(empty($categoryLabels)) {
-            $categoryLabels = ['Fiction', 'Science', 'Education', 'Technology', 'Others'];
-            $categoryData = [436, 312, 250, 150, 100];
-        }
-
-        // Books Borrowed Over Time for Line Chart (Fake 30 days data for demonstration)
+        // Books Borrowed Over Time for Line Chart (dynamic 30 days data)
         $chartDates = [];
         $chartBorrows = [];
+        
+        $borrowHistory = \App\Models\Transaction::where('issue_date', '>=', Carbon::now()->subDays(30)->startOfDay())
+            ->selectRaw('DATE(issue_date) as date, COUNT(*) as count')
+            ->groupBy('date')
+            ->pluck('count', 'date')
+            ->toArray();
+
         for ($i = 30; $i >= 0; $i--) {
-            $chartDates[] = Carbon::now()->subDays($i)->format('M d');
-            $chartBorrows[] = rand(20, 80);
+            $dateObj = Carbon::now()->subDays($i);
+            $formattedDate = $dateObj->format('M d');
+            $dateString = $dateObj->toDateString();
+            
+            $chartDates[] = $formattedDate;
+            $chartBorrows[] = $borrowHistory[$dateString] ?? 0;
         }
 
         // Top Borrowed Books (Most borrowed)
-        $topBooks = Book::withCount('borrowRecords')
+        $topBooks = Book::withCount('transactions as borrow_records_count')
             ->orderBy('borrow_records_count', 'desc')
             ->take(5)
             ->get();
@@ -58,32 +94,67 @@ class ReportController extends Controller
         $activitySummary = [
             'new_members' => $newMembersThisMonth,
             'books_borrowed' => $borrowedThisMonth,
-            'books_returned' => BorrowRecord::where('status', 'returned')->whereMonth('updated_at', Carbon::now()->month)->count() ?: 186,
+            'books_returned' => \App\Models\Transaction::where('status', 'Returned')
+                ->whereMonth('return_date', Carbon::now()->month)
+                ->whereYear('return_date', Carbon::now()->year)
+                ->count(),
             'overdue_books' => $overdueThisMonth
         ];
+
+        // Specific Report Data
+        $reportType = $request->input('report_type', 'All Reports');
+        $reportData = collect();
+
+        if ($reportType === 'Borrowing History') {
+            $reportData = \App\Models\Transaction::with(['book', 'bookCopy', 'member'])
+                ->whereBetween('issue_date', [$startDate, $endDate])
+                ->latest()
+                ->get();
+        } elseif ($reportType === 'Inventory Status') {
+            $reportData = Book::with(['author', 'category', 'copies'])->get();
+        } elseif ($reportType === 'Member Activity') {
+            $reportData = Member::withCount(['transactions as borrowings_count' => function($q) use ($startDate, $endDate) {
+                $q->whereBetween('issue_date', [$startDate, $endDate]);
+            }])
+            ->withCount(['transactions as active_borrowings_count' => function($q) use ($startDate, $endDate) {
+                $q->whereBetween('issue_date', [$startDate, $endDate])
+                  ->whereIn('status', ['Issued', 'Overdue']);
+            }])
+            ->withSum(['transactions as total_fines' => function($q) use ($startDate, $endDate) {
+                $q->whereBetween('issue_date', [$startDate, $endDate]);
+            }], 'fine_amount')
+            ->get();
+        }
 
         return view('reports.index', compact(
             'totalBooks', 'totalMembers', 'booksBorrowed', 'overdueBooks', 'totalFines',
             'newBooksThisMonth', 'newMembersThisMonth', 'borrowedThisMonth', 'overdueThisMonth',
             'categoryLabels', 'categoryData', 'chartDates', 'chartBorrows',
-            'topBooks', 'activitySummary'
+            'topBooks', 'activitySummary', 'reportType', 'reportData', 'formattedRange'
         ));
     }
 
     public function export()
     {
         // Automatically calculate and update overdue records
-        \App\Models\BorrowRecord::updateOverdueRecords();
+        \App\Models\Transaction::where('status', 'Issued')
+            ->where('due_date', '<', now())
+            ->each(function ($transaction) {
+                $transaction->update(['status' => 'Overdue']);
+                if ($transaction->bookCopy) {
+                    $transaction->bookCopy->update(['status' => 'Overdue']);
+                }
+            });
 
         $stats = [
-            'total_books' => \App\Models\Book::sum('total_copies'),
+            'total_books' => \App\Models\BookCopy::where('status', '!=', 'Retired')->count(),
             'total_members' => \App\Models\Member::count(),
-            'active_borrowings' => \App\Models\BorrowRecord::where('status', 'borrowed')->count(),
-            'overdue_books' => \App\Models\BorrowRecord::where('status', 'overdue')->count(),
-            'total_fines' => \App\Models\BorrowRecord::get()->sum('fine'),
+            'active_borrowings' => \App\Models\Transaction::whereIn('status', ['Issued', 'Overdue'])->count(),
+            'overdue_books' => \App\Models\Transaction::where('status', 'Overdue')->count(),
+            'total_fines' => \App\Models\Transaction::sum('fine_amount'),
         ];
         
-        $recent_borrowings = \App\Models\BorrowRecord::with(['book', 'member'])
+        $recent_borrowings = \App\Models\Transaction::with(['book', 'member'])
                                 ->latest()
                                 ->take(10)
                                 ->get();

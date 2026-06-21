@@ -11,8 +11,7 @@ class Book extends Model
     use HasFactory;
 
     protected $fillable = [
-        'title', 'isbn', 'category_id', 'author_id', 
-        'total_copies', 'available_copies'
+        'title', 'isbn', 'category_id', 'author_id'
     ];
 
     public function category()
@@ -28,5 +27,15 @@ class Book extends Model
     public function borrowRecords()
     {
         return $this->hasMany(BorrowRecord::class);
+    }
+
+    public function copies()
+    {
+        return $this->hasMany(BookCopy::class);
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
     }
 }

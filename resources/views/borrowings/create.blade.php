@@ -30,22 +30,23 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Book</label>
-                    <select name="book_id" required class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 appearance-none">
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Book Barcode ID</label>
+                    <input type="text" name="barcode_id" id="barcode_id" required autofocus placeholder="Scan or type barcode (e.g. LIB-000001)" list="books-list" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" autocomplete="off" value="{{ old('barcode_id') }}">
+                    <datalist id="books-list">
                         @foreach(\App\Models\Book::all() as $book)
-                            <option value="{{ $book->id }}">{{ $book->title }} ({{ $book->available_copies }} available)</option>
+                            <option value="{{ $book->barcode_id }}">{{ $book->title }} ({{ $book->available_copies }} available)</option>
                         @endforeach
-                    </select>
+                    </datalist>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Borrow Date</label>
-                    <input type="date" name="borrow_date" id="borrow_date" value="{{ date('Y-m-d') }}" required class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    <input type="text" name="borrow_date" id="borrow_date" value="{{ date('Y-m-d') }}" required class="datepicker w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="YYYY-MM-DD">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-slate-300 mb-2">Due Date</label>
-                    <input type="date" name="due_date" id="due_date" value="{{ date('Y-m-d', strtotime('+' . \App\Models\Setting::get('borrow_duration', 15) . ' days')) }}" required class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                    <input type="text" name="due_date" id="due_date" value="{{ date('Y-m-d', strtotime('+' . \App\Models\Setting::get('borrow_duration', 15) . ' days')) }}" required class="datepicker w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="YYYY-MM-DD">
                 </div>
                 
                 <div>

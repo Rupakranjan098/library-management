@@ -3,19 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\Book;
+use App\Models\BookCopy;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BookController extends Controller
 {
     public function index(Request $request)
     {
-        $query = \App\Models\Book::with(['author', 'category']);
+        $query = Book::with(['author', 'category', 'copies']);
 
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('isbn', 'like', "%{$search}%")
+                  ->orWhereHas('copies', function ($cq) use ($search) {
+                      $cq->where('barcode_id', 'like', "%{$search}%");
+                  })
                   ->orWhereHas('author', function ($aq) use ($search) {
                       $aq->where('name', 'like', "%{$search}%");
                   });
@@ -28,31 +32,230 @@ class BookController extends Controller
 
     public function create()
     {
-        return view('books.create');
+        $books = Book::orderBy('title')->get();
+        return view('books.create', compact('books'));
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'isbn' => 'required|string|unique:books',
-            'category_id' => 'required|exists:categories,id',
-            'author_id' => 'required|exists:authors,id',
-            'total_copies' => 'required|integer|min:1',
+        $request->validate([
+            'book_mode' => 'required|in:new,existing',
+            'barcode_id' => 'required|string',
         ]);
 
-        // When a new book is created, all copies are available.
-        $validated['available_copies'] = $validated['total_copies'];
+        $barcodeId = $request->input('barcode_id');
+        $copy = BookCopy::where('barcode_id', $barcodeId)->first();
 
-        Book::create($validated);
+        if (!$copy || $copy->status !== 'Unassigned') {
+            return back()->withErrors([
+                'barcode_id' => 'This barcode is invalid or already assigned to another book. Please scan an unassigned barcode sticker.'
+            ])->withInput();
+        }
 
-        return redirect()->route('books.index')->with('success', 'Book added successfully!');
+        if ($request->input('book_mode') === 'existing') {
+            $validated = $request->validate([
+                'book_id' => 'required|exists:books,id',
+            ]);
+            $bookId = $validated['book_id'];
+            $book = Book::findOrFail($bookId);
+        } else {
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'isbn' => 'nullable|string',
+                'category_id' => 'required|exists:categories,id',
+                'author_id' => 'required|exists:authors,id',
+            ]);
+
+            // Check if Book already exists by title and author
+            $book = Book::firstOrCreate(
+                [
+                    'title' => $validated['title'],
+                    'author_id' => $validated['author_id'],
+                ],
+                [
+                    'isbn' => $validated['isbn'],
+                    'category_id' => $validated['category_id'],
+                ]
+            );
+        }
+
+        DB::transaction(function () use ($copy, $book) {
+            $copy->update([
+                'book_id' => $book->id,
+                'status' => 'Available',
+                'assigned_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('books.show', $book->id)->with('success', 'Barcode linked to book copy successfully!');
     }
 
     public function show(Book $book)
     {
-        $book->load(['category', 'author', 'borrowRecords']);
+        $book->load(['category', 'author', 'copies.transactions.member', 'transactions.member']);
         return view('books.show', compact('book'));
+    }
+
+    public function printBarcodes(Request $request)
+    {
+        $query = BookCopy::with(['book.author']);
+
+        if ($request->filled('ids')) {
+            $ids = $request->input('ids');
+            if (is_string($ids)) {
+                $ids = explode(',', $ids);
+            }
+            if ($request->boolean('by_book')) {
+                $query->whereIn('book_id', $ids);
+            } else {
+                $query->whereIn('id', $ids);
+            }
+        } elseif ($request->boolean('unprinted')) {
+            $query->whereNull('barcode_printed_at');
+        } elseif ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('barcode_id', 'like', "%{$search}%")
+                  ->orWhereHas('book', function ($bq) use ($search) {
+                      $bq->where('title', 'like', "%{$search}%")
+                        ->orWhereHas('author', function ($aq) use ($search) {
+                            $aq->where('name', 'like', "%{$search}%");
+                        });
+                  });
+            });
+        }
+
+        // We name the variable $books for view compatibility, but it holds BookCopy records
+        $books = $query->latest()->paginate(100)->withQueryString();
+
+        $cols = (int) $request->input('cols', 4);
+        $height = (int) $request->input('height', 100);
+        $fontSize = (int) $request->input('font_size', 10);
+
+        if ($request->input('download') === 'pdf') {
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('books.print-barcodes-pdf', compact('books', 'cols', 'height', 'fontSize'));
+            return $pdf->download('barcodes.pdf');
+        }
+
+        return view('books.print-barcodes', compact('books', 'cols', 'height', 'fontSize'));
+    }
+
+    public function markPrinted(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:book_copies,id',
+        ]);
+
+        BookCopy::whereIn('id', $validated['ids'])->update([
+            'barcode_printed_at' => now(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function showGenerateBarcodesForm()
+    {
+        return view('books.generate-barcodes');
+    }
+
+    public function lookup(Request $request)
+    {
+        $barcodeId = $request->input('barcode_id');
+        $copy = null;
+        $history = collect();
+
+        if ($barcodeId) {
+            $copy = BookCopy::with(['book.author', 'book.category'])
+                ->where('barcode_id', $barcodeId)
+                ->first();
+
+            if ($copy) {
+                $history = \App\Models\Transaction::with('member')
+                    ->where('book_copy_id', $copy->id)
+                    ->latest()
+                    ->get();
+            } else {
+                session()->flash('error_lookup', 'Barcode not found in the system records. Please scan or check the value.');
+            }
+        }
+
+        return view('books.lookup', compact('copy', 'history', 'barcodeId'));
+    }
+
+    public function generateBarcodes(Request $request)
+    {
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1|max:500',
+        ]);
+
+        $quantity = $validated['quantity'];
+        $generatedIds = [];
+
+        DB::transaction(function () use ($quantity, &$generatedIds) {
+            $maxBarcode = BookCopy::where('barcode_id', 'like', 'LIB-%')
+                ->lockForUpdate()
+                ->orderBy('barcode_id', 'desc')
+                ->value('barcode_id');
+
+            if ($maxBarcode) {
+                $number = (int) substr($maxBarcode, 4);
+                $nextNumber = $number + 1;
+            } else {
+                $nextNumber = 1;
+            }
+
+            for ($i = 0; $i < $quantity; $i++) {
+                do {
+                    $barcode = 'LIB-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+                    $nextNumber++;
+                } while (BookCopy::where('barcode_id', $barcode)->exists());
+
+                $copy = BookCopy::create([
+                    'barcode_id' => $barcode,
+                    'book_id' => null,
+                    'status' => 'Unassigned',
+                ]);
+
+                $generatedIds[] = $copy->id;
+            }
+        });
+
+        return redirect()->route('books.print-barcodes', [
+            'ids' => implode(',', $generatedIds),
+        ])->with('success', "Successfully generated {$quantity} unassigned barcodes!");
+    }
+
+    public function linkBarcode(Request $request, Book $book)
+    {
+        $validated = $request->validate([
+            'barcode_id' => 'required|string',
+        ]);
+
+        $barcodeId = $validated['barcode_id'];
+        $copy = BookCopy::where('barcode_id', $barcodeId)->first();
+
+        if (!$copy || $copy->status !== 'Unassigned') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This barcode is invalid or already assigned to another book. Please scan an unassigned barcode sticker.'
+            ], 422);
+        }
+
+        DB::transaction(function () use ($copy, $book) {
+            $copy->update([
+                'book_id' => $book->id,
+                'status' => 'Available',
+                'assigned_at' => now(),
+            ]);
+        });
+
+        return response()->json([
+            'success' => true,
+            'barcode_id' => $copy->barcode_id,
+            'total_copies' => $book->copies()->where('status', '!=', 'Retired')->count(),
+            'available_copies' => $book->copies()->where('status', 'Available')->count(),
+        ]);
     }
 
     public function edit(Book $book)
@@ -64,19 +267,63 @@ class BookController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'isbn' => 'required|string|unique:books,isbn,' . $book->id,
+            'isbn' => 'nullable|string',
             'category_id' => 'required|exists:categories,id',
             'author_id' => 'required|exists:authors,id',
             'total_copies' => 'required|integer|min:1',
         ]);
 
-        // Calculate new available copies based on the difference
-        $difference = $validated['total_copies'] - $book->total_copies;
-        $validated['available_copies'] = $book->available_copies + $difference;
+        return DB::transaction(function () use ($validated, $book) {
+            $totalCopies = (int) $validated['total_copies'];
+            unset($validated['total_copies']);
 
-        $book->update($validated);
+            $book->update($validated);
 
-        return redirect()->route('books.index')->with('success', 'Book updated successfully!');
+            // Sync copy count
+            $currentCopiesCount = $book->copies()->where('status', '!=', 'Retired')->count();
+            $difference = $totalCopies - $currentCopiesCount;
+
+            if ($difference > 0) {
+                for ($i = 0; $i < $difference; $i++) {
+                    BookCopy::create([
+                        'book_id' => $book->id,
+                        'status' => 'Available',
+                        'assigned_at' => now(),
+                    ]);
+                }
+            } elseif ($difference < 0) {
+                // Safely retire only available copies to avoid breaking issued copy logs
+                $copiesToRetire = $book->copies()
+                    ->where('status', 'Available')
+                    ->limit(abs($difference))
+                    ->get();
+
+                foreach ($copiesToRetire as $copy) {
+                    $copy->update(['status' => 'Retired']);
+                }
+            }
+
+            return redirect()->route('books.index')->with('success', 'Book updated successfully!');
+        });
+    }
+
+    public function template()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="books_import_template.csv"',
+        ];
+
+        $callback = function () {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['title', 'isbn', 'author', 'category', 'total_copies']);
+            fputcsv($file, ['The Hobbit', '9780547928227', 'J.R.R. Tolkien', 'Fantasy', '5']);
+            fputcsv($file, ['Foundation', '9780553293357', 'Isaac Asimov', 'Science Fiction', '10']);
+            fputcsv($file, ['Cosmos', '9780345331359', 'Carl Sagan', 'Non-Fiction', '3']);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function import(Request $request)
@@ -93,15 +340,12 @@ class BookController extends Controller
         $skips = [];
 
         if (($handle = fopen($path, 'r')) !== false) {
-            // Get headers
             $headers = fgetcsv($handle, 1000, ',');
             if ($headers) {
-                // Normalize headers (trim, lowercase)
                 $headers = array_map(function($header) {
                     return strtolower(trim($header));
                 }, $headers);
 
-                // Map header names to their corresponding column indices
                 $titleIdx = array_search('title', $headers);
                 $isbnIdx = array_search('isbn', $headers);
                 $authorIdx = array_search('author', $headers);
@@ -119,14 +363,13 @@ class BookController extends Controller
 
                 if ($titleIdx === false || $isbnIdx === false || $authorIdx === false || $categoryIdx === false) {
                     fclose($handle);
-                    return back()->withErrors(['csv_file' => 'CSV must contain headers: title, isbn, author (or author_name), category (or category_name).']);
+                    return back()->withErrors(['csv_file' => 'CSV must contain headers: title, isbn, author, category.']);
                 }
 
                 $rowNum = 1;
                 while (($data = fgetcsv($handle, 1000, ',')) !== false) {
                     $rowNum++;
                     
-                    // Skip empty rows
                     if (empty(array_filter($data))) {
                         continue;
                     }
@@ -143,18 +386,16 @@ class BookController extends Controller
 
                     if (empty($title) || empty($isbn) || empty($authorName) || empty($categoryName)) {
                         $skippedCount++;
-                        $skips[] = "Row {$rowNum}: Missing required fields (title, isbn, author, or category).";
+                        $skips[] = "Row {$rowNum}: Missing required fields.";
                         continue;
                     }
 
-                    // Check duplicate isbn in the database
                     if (Book::where('isbn', $isbn)->exists()) {
                         $skippedCount++;
                         $skips[] = "Row {$rowNum}: ISBN '{$isbn}' already exists.";
                         continue;
                     }
 
-                    // Find or create Author
                     $author = \App\Models\Author::where('name', $authorName)->first();
                     if (!$author) {
                         $author = \App\Models\Author::create([
@@ -163,7 +404,6 @@ class BookController extends Controller
                         ]);
                     }
 
-                    // Find or create Category
                     $category = \App\Models\Category::where('name', $categoryName)->first();
                     if (!$category) {
                         $category = \App\Models\Category::create([
@@ -172,15 +412,22 @@ class BookController extends Controller
                         ]);
                     }
 
-                    // Create book
-                    Book::create([
-                        'title' => $title,
-                        'isbn' => $isbn,
-                        'author_id' => $author->id,
-                        'category_id' => $category->id,
-                        'total_copies' => $totalCopies,
-                        'available_copies' => $totalCopies,
-                    ]);
+                    DB::transaction(function () use ($title, $isbn, $author, $category, $totalCopies) {
+                        $book = Book::create([
+                            'title' => $title,
+                            'isbn' => $isbn,
+                            'author_id' => $author->id,
+                            'category_id' => $category->id,
+                        ]);
+
+                        for ($i = 0; $i < $totalCopies; $i++) {
+                            BookCopy::create([
+                                'book_id' => $book->id,
+                                'status' => 'Available',
+                                'assigned_at' => now(),
+                            ]);
+                        }
+                    });
 
                     $importedCount++;
                 }
@@ -200,7 +447,6 @@ class BookController extends Controller
     public function destroy(Book $book)
     {
         $book->delete();
-
         return redirect()->route('books.index')->with('success', 'Book deleted successfully!');
     }
 }

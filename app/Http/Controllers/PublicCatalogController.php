@@ -19,21 +19,23 @@ class PublicCatalogController extends Controller
         // Real dynamic stats from actual database
         $stats = [
             'total_books'      => Book::count(),
-            'total_copies'     => Book::sum('total_copies') ?? 0,
+            'total_copies'     => \App\Models\BookCopy::where('status', '!=', 'Retired')->count(),
             'total_members'    => Member::count(),
-            'books_borrowed'   => BorrowRecord::whereIn('status', ['borrowed', 'overdue'])->count(),
+            'books_borrowed'   => \App\Models\BookCopy::where('status', 'Issued')->count(),
             'total_authors'    => \App\Models\Author::count(),
             'total_categories' => $categories->count(),
         ];
 
-        $query = Book::with(['author', 'category']);
+        $query = Book::with(['author', 'category', 'copies']);
 
         // Search text filter
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('isbn', 'like', "%{$search}%")
+                  ->orWhereHas('copies', function ($cq) use ($search) {
+                      $cq->where('barcode_id', 'like', "%{$search}%");
+                  })
                   ->orWhereHas('author', function ($aq) use ($search) {
                       $aq->where('name', 'like', "%{$search}%");
                   });
@@ -78,7 +80,8 @@ class PublicCatalogController extends Controller
             'member_id' => 'required|exists:members,id',
         ]);
 
-        if ($book->available_copies <= 0) {
+        $availableCopies = $book->copies()->where('status', 'Available')->count();
+        if ($availableCopies <= 0) {
             return response()->json([
                 'success' => false,
                 'message' => 'This book is currently out of stock.'
@@ -98,6 +101,9 @@ class PublicCatalogController extends Controller
             ], 422);
         }
 
+        // Find an available copy to issue
+        $copy = $book->copies()->where('status', 'Available')->first();
+
         // Create the borrow record
         BorrowRecord::create([
             'book_id'     => $book->id,
@@ -107,14 +113,14 @@ class PublicCatalogController extends Controller
             'status'      => 'borrowed',
         ]);
 
-        // Decrement copies
-        $book->decrement('available_copies');
+        // Decrement copies status
+        $copy->update(['status' => 'Issued']);
 
         return response()->json([
             'success'          => true,
             'message'          => 'Book reserved successfully!',
-            'available_copies' => $book->available_copies,
-            'total_copies'     => $book->total_copies,
+            'available_copies' => $book->copies()->where('status', 'Available')->count(),
+            'total_copies'     => $book->copies()->where('status', '!=', 'Retired')->count(),
         ]);
     }
 

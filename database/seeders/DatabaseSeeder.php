@@ -28,32 +28,47 @@ class DatabaseSeeder extends Seeder
         $auth3 = \App\Models\Author::create(['name' => 'Carl Sagan', 'bio' => 'Astronomer']);
 
         // Seed Books
-        \App\Models\Book::create([
+        $book1 = \App\Models\Book::create([
             'title' => 'Foundation',
             'isbn' => '9780553293357',
             'category_id' => $cat1->id,
             'author_id' => $auth1->id,
-            'total_copies' => 10,
-            'available_copies' => 10,
         ]);
+        for ($i = 0; $i < 10; $i++) {
+            \App\Models\BookCopy::create([
+                'book_id' => $book1->id,
+                'status' => 'Available',
+                'assigned_at' => now(),
+            ]);
+        }
 
-        \App\Models\Book::create([
+        $book2 = \App\Models\Book::create([
             'title' => 'The Hobbit',
             'isbn' => '9780547928227',
             'category_id' => $cat2->id,
             'author_id' => $auth2->id,
-            'total_copies' => 5,
-            'available_copies' => 5,
         ]);
+        for ($i = 0; $i < 5; $i++) {
+            \App\Models\BookCopy::create([
+                'book_id' => $book2->id,
+                'status' => 'Available',
+                'assigned_at' => now(),
+            ]);
+        }
 
-        \App\Models\Book::create([
+        $book3 = \App\Models\Book::create([
             'title' => 'Cosmos',
             'isbn' => '9780345331359',
             'category_id' => $cat3->id,
             'author_id' => $auth3->id,
-            'total_copies' => 3,
-            'available_copies' => 3,
         ]);
+        for ($i = 0; $i < 3; $i++) {
+            \App\Models\BookCopy::create([
+                'book_id' => $book3->id,
+                'status' => 'Available',
+                'assigned_at' => now(),
+            ]);
+        }
 
         // Seed default Settings
         \App\Models\Setting::set('library_name', 'Laravel Library');
