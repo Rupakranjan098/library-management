@@ -9,14 +9,6 @@
             <p class="text-slate-400 mt-1 text-sm">Manage the library's book catalog.</p>
         </div>
         <div class="flex items-center space-x-3">
-            <button onclick="printSelectedBarcodes()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-lg">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                Print Selected
-            </button>
-            <button onclick="printUnprintedBarcodes()" class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-lg">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                Print Unprinted
-            </button>
             <button onclick="toggleImportModal()" class="bg-[#1e293b] hover:bg-[#334155] text-indigo-400 hover:text-indigo-300 border border-slate-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-lg">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 Import
@@ -46,9 +38,6 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="text-slate-400 text-xs uppercase tracking-wider bg-slate-800/20 border-b border-slate-700/80">
-                        <th class="px-6 py-4 font-medium w-12 text-center">
-                            <input type="checkbox" id="selectAllCheckbox" class="w-4 h-4 rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500">
-                        </th>
                         <th class="px-6 py-4 font-medium">Title & Author</th>
                         <th class="px-6 py-4 font-medium">Category</th>
                         <th class="px-6 py-4 font-medium">ISBN</th>
@@ -59,9 +48,7 @@
                 <tbody class="text-sm divide-y divide-slate-700/50">
                     @forelse($books as $book)
                     <tr class="hover:bg-slate-800/30 transition-colors group">
-                        <td class="px-6 py-4 w-12 text-center">
-                            <input type="checkbox" name="book_ids[]" value="{{ $book->id }}" class="book-select-checkbox w-4 h-4 rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500">
-                        </td>
+
                         <td class="px-6 py-4">
                             <div class="flex items-center">
                                 <div class="w-10 h-14 rounded bg-indigo-500/20 flex flex-col items-center justify-center text-indigo-400 mr-4 border border-indigo-500/30 shrink-0">
@@ -357,46 +344,6 @@
                 </html>
             `);
             printWindow.document.close();
-        }
-
-        // Toggle all checkboxes
-        document.addEventListener('DOMContentLoaded', function () {
-            const selectAll = document.getElementById('selectAllCheckbox');
-            const checkboxes = document.querySelectorAll('.book-select-checkbox');
-
-            if (selectAll) {
-                selectAll.addEventListener('change', function(e) {
-                    checkboxes.forEach(cb => {
-                        cb.checked = e.target.checked;
-                    });
-                });
-            }
-
-            checkboxes.forEach(cb => {
-                cb.addEventListener('change', function () {
-                    if (!this.checked && selectAll) {
-                        selectAll.checked = false;
-                    } else if (selectAll && document.querySelectorAll('.book-select-checkbox:checked').length === checkboxes.length) {
-                        selectAll.checked = true;
-                    }
-                });
-            });
-        });
-
-        // Submit selected books for barcode printing
-        function printSelectedBarcodes() {
-            const checkboxes = document.querySelectorAll('.book-select-checkbox:checked');
-            if (checkboxes.length === 0) {
-                alert('Please select at least one book to print.');
-                return;
-            }
-            
-            const ids = Array.from(checkboxes).map(cb => cb.value).join(',');
-            window.location.href = `{{ route('books.print-barcodes') }}?ids=${ids}&by_book=1`;
-        }
-
-        function printUnprintedBarcodes() {
-            window.location.href = `{{ route('books.print-barcodes') }}?unprinted=1`;
         }
 
         function toggleCopiesRow(bookId) {

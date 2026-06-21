@@ -36,17 +36,12 @@ class BookCopy extends Model
     public static function generateUniqueBarcode()
     {
         return DB::transaction(function () {
-            $maxBarcode = self::where('barcode_id', 'like', 'LIB-%')
+            $maxNum = self::where('barcode_id', 'like', 'LIB-%')
                 ->lockForUpdate()
-                ->orderBy('barcode_id', 'desc')
-                ->value('barcode_id');
+                ->selectRaw('MAX(CAST(SUBSTRING(barcode_id, 5) AS UNSIGNED)) as max_num')
+                ->value('max_num');
 
-            if ($maxBarcode) {
-                $number = (int) substr($maxBarcode, 4);
-                $nextNumber = $number + 1;
-            } else {
-                $nextNumber = 1;
-            }
+            $nextNumber = $maxNum ? ((int) $maxNum + 1) : 1;
 
             do {
                 $barcode = 'LIB-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);

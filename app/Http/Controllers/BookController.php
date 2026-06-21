@@ -193,26 +193,8 @@ class BookController extends Controller
         $generatedIds = [];
 
         DB::transaction(function () use ($quantity, &$generatedIds) {
-            $maxBarcode = BookCopy::where('barcode_id', 'like', 'LIB-%')
-                ->lockForUpdate()
-                ->orderBy('barcode_id', 'desc')
-                ->value('barcode_id');
-
-            if ($maxBarcode) {
-                $number = (int) substr($maxBarcode, 4);
-                $nextNumber = $number + 1;
-            } else {
-                $nextNumber = 1;
-            }
-
             for ($i = 0; $i < $quantity; $i++) {
-                do {
-                    $barcode = 'LIB-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
-                    $nextNumber++;
-                } while (BookCopy::where('barcode_id', $barcode)->exists());
-
                 $copy = BookCopy::create([
-                    'barcode_id' => $barcode,
                     'book_id' => null,
                     'status' => 'Unassigned',
                 ]);
