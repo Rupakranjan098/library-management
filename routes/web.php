@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::get('books/print-barcodes', [\App\Http\Controllers\BookController::class, 'printBarcodes'])->name('books.print-barcodes');
     Route::post('books/mark-printed', [\App\Http\Controllers\BookController::class, 'markPrinted'])->name('books.mark-printed');
     Route::post('books/{book}/link-barcode', [\App\Http\Controllers\BookController::class, 'linkBarcode'])->name('books.link-barcode');
+    Route::post('books/{book}/generate-copy', [\App\Http\Controllers\BookController::class, 'generateParticularCopy'])->name('books.generate-copy');
     Route::get('books/lookup', [\App\Http\Controllers\BookController::class, 'lookup'])->name('books.lookup');
     Route::resource('books', \App\Http\Controllers\BookController::class);
     Route::get('circulation/overdue', [\App\Http\Controllers\CirculationController::class, 'overdueDashboard'])->name('circulation.overdue');

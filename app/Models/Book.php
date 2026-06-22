@@ -38,4 +38,14 @@ class Book extends Model
     {
         return $this->hasMany(Transaction::class);
     }
+
+    public function getTotalCopiesAttribute()
+    {
+        return $this->copies()->where('status', '!=', 'Retired')->count();
+    }
+
+    public function getAvailableCopiesAttribute()
+    {
+        return $this->copies()->where('status', 'Available')->count();
+    }
 }

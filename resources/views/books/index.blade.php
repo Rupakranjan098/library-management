@@ -9,6 +9,10 @@
             <p class="text-slate-400 mt-1 text-sm">Manage the library's book catalog.</p>
         </div>
         <div class="flex items-center space-x-3">
+            <button id="printSelectedBtn" onclick="printSelectedBarcodes()" class="hidden bg-indigo-600 hover:bg-indigo-705 text-white px-4 py-2 rounded-lg font-medium shadow-[0_4px_15px_rgba(79,70,229,0.3)] transition-colors flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                Print Barcodes (<span id="selectedCount">0</span>)
+            </button>
             <button onclick="toggleImportModal()" class="bg-[#1e293b] hover:bg-[#334155] text-indigo-400 hover:text-indigo-300 border border-slate-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center shadow-lg">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 Import
@@ -38,9 +42,12 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="text-slate-400 text-xs uppercase tracking-wider bg-slate-800/20 border-b border-slate-700/80">
+                        <th class="px-6 py-4 font-medium w-12 text-center">
+                            <input type="checkbox" id="selectAllBooksCheckbox" class="rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                        </th>
                         <th class="px-6 py-4 font-medium">Title & Author</th>
                         <th class="px-6 py-4 font-medium">Category</th>
-                        <th class="px-6 py-4 font-medium">ISBN</th>
+                        <th class="px-6 py-4 font-medium">Barcode ID(s)</th>
                         <th class="px-6 py-4 font-medium">Copies</th>
                         <th class="px-6 py-4 font-medium text-right">Actions</th>
                     </tr>
@@ -48,7 +55,9 @@
                 <tbody class="text-sm divide-y divide-slate-700/50">
                     @forelse($books as $book)
                     <tr class="hover:bg-slate-800/30 transition-colors group">
-
+                        <td class="px-6 py-4 w-12 text-center">
+                            <input type="checkbox" name="book_ids[]" value="{{ $book->id }}" class="book-select-checkbox rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                        </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center">
                                 <div class="w-10 h-14 rounded bg-indigo-500/20 flex flex-col items-center justify-center text-indigo-400 mr-4 border border-indigo-500/30 shrink-0">
@@ -65,7 +74,9 @@
                                 {{ $book->category->name ?? 'General' }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-slate-400 font-mono text-xs">{{ $book->isbn }}</td>
+                        <td class="px-6 py-4 text-slate-400 font-mono text-xs max-w-[180px] truncate" title="{{ $book->copies->pluck('barcode_id')->implode(', ') }}">
+                            {{ $book->copies->pluck('barcode_id')->implode(', ') ?: 'No Barcode' }}
+                        </td>
                         <td class="px-6 py-4 text-slate-300 text-xs font-semibold whitespace-nowrap">
                             <span class="text-slate-200">{{ $book->copies->where('status', '!=', 'Retired')->count() }} Total</span>
                             <span class="text-slate-500 mx-1">&middot;</span>
@@ -73,6 +84,12 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <form action="{{ route('books.generate-copy', $book) }}" method="POST" class="inline-block" title="Generate & Print New Barcode Copy">
+                                    @csrf
+                                    <button type="submit" class="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                                    </button>
+                                </form>
                                 <button type="button" onclick="toggleCopiesRow({{ $book->id }})" class="p-2 text-slate-400 hover:text-indigo-455 hover:bg-indigo-400/10 rounded transition-colors" title="View Physical Copies">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                                 </button>
@@ -94,17 +111,26 @@
                     </tr>
                     <!-- Expandable Copies Sub-Table Row -->
                     <tr id="copies-row-{{ $book->id }}" class="hidden bg-slate-900/30">
-                        <td colspan="6" class="px-8 py-4 border-t border-b border-slate-800/80">
+                        <td colspan="7" class="px-8 py-4 border-t border-b border-slate-800/80">
                             <div class="p-4 bg-slate-900/60 rounded-xl border border-slate-700/50 shadow-inner">
-                                <h4 class="text-xs font-bold text-slate-350 mb-3 flex items-center">
-                                    <svg class="w-4 h-4 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                                    Physical Copy List: "{{ $book->title }}"
-                                </h4>
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="text-xs font-bold text-slate-350 flex items-center">
+                                        <svg class="w-4 h-4 mr-2 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                                        Physical Copy List: "{{ $book->title }}"
+                                    </h4>
+                                    <button type="button" onclick="printSelectedCopies({{ $book->id }})" id="printCopiesBtn-{{ $book->id }}" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow transition-colors flex items-center">
+                                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                        Print Selected (<span id="selectedCopiesCount-{{ $book->id }}">0</span>)
+                                    </button>
+                                </div>
                                 
                                 <div class="overflow-x-auto">
                                     <table class="w-full text-left border-collapse text-xs">
                                         <thead>
                                             <tr class="text-slate-500 border-b border-slate-850 uppercase tracking-wider font-semibold">
+                                                <th class="pb-2 w-12 text-center">
+                                                    <input type="checkbox" class="select-all-copies-checkbox rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500" data-book-id="{{ $book->id }}">
+                                                </th>
                                                 <th class="pb-2 w-1/4">Barcode ID</th>
                                                 <th class="pb-2 w-1/4">Status</th>
                                                 <th class="pb-2 w-1/4">Assigned At</th>
@@ -114,6 +140,9 @@
                                         <tbody class="divide-y divide-slate-800/40 text-slate-300">
                                             @forelse($book->copies as $copy)
                                                 <tr>
+                                                    <td class="py-2 w-12 text-center">
+                                                        <input type="checkbox" name="copy_ids[]" value="{{ $copy->id }}" class="copy-select-checkbox rounded bg-slate-800 border-slate-700 text-indigo-600 focus:ring-indigo-500" data-book-id="{{ $book->id }}">
+                                                    </td>
                                                     <td class="py-2 font-mono font-bold text-slate-200">{{ $copy->barcode_id }}</td>
                                                     <td class="py-2">
                                                         @php
@@ -145,7 +174,7 @@
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="4" class="py-3 text-center text-slate-600">No copies registered.</td>
+                                                    <td colspan="5" class="py-3 text-center text-slate-600">No copies registered.</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -351,6 +380,108 @@
             if (row) {
                 row.classList.toggle('hidden');
             }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectAll = document.getElementById('selectAllBooksCheckbox');
+            const checkboxes = document.querySelectorAll('.book-select-checkbox');
+            const printBtn = document.getElementById('printSelectedBtn');
+            const countLabel = document.getElementById('selectedCount');
+
+            function togglePrintButton() {
+                const checkedCount = document.querySelectorAll('.book-select-checkbox:checked').length;
+                if (checkedCount > 0) {
+                    printBtn.classList.remove('hidden');
+                    countLabel.textContent = checkedCount;
+                } else {
+                    printBtn.classList.add('hidden');
+                }
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    checkboxes.forEach(cb => {
+                        cb.checked = this.checked;
+                    });
+                    togglePrintButton();
+                });
+            }
+
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', function () {
+                    if (!this.checked && selectAll) {
+                        selectAll.checked = false;
+                    } else if (selectAll && document.querySelectorAll('.book-select-checkbox:checked').length === checkboxes.length) {
+                        selectAll.checked = true;
+                    }
+                    togglePrintButton();
+                });
+            });
+
+            // Handle Copy Select Checkboxes
+            document.querySelectorAll('.select-all-copies-checkbox').forEach(selectAllCB => {
+                selectAllCB.addEventListener('change', function () {
+                    const bookId = this.getAttribute('data-book-id');
+                    const copyCBs = document.querySelectorAll(`.copy-select-checkbox[data-book-id="${bookId}"]`);
+                    copyCBs.forEach(cb => {
+                        cb.checked = this.checked;
+                    });
+                    toggleCopyPrintButton(bookId);
+                });
+            });
+
+            document.querySelectorAll('.copy-select-checkbox').forEach(cb => {
+                cb.addEventListener('change', function () {
+                    const bookId = this.getAttribute('data-book-id');
+                    const selectAllCB = document.querySelector(`.select-all-copies-checkbox[data-book-id="${bookId}"]`);
+                    const allCBs = document.querySelectorAll(`.copy-select-checkbox[data-book-id="${bookId}"]`);
+                    const checkedCBs = document.querySelectorAll(`.copy-select-checkbox[data-book-id="${bookId}"]:checked`);
+                    
+                    if (!this.checked && selectAllCB) {
+                        selectAllCB.checked = false;
+                    } else if (selectAllCB && checkedCBs.length === allCBs.length) {
+                        selectAllCB.checked = true;
+                    }
+                    toggleCopyPrintButton(bookId);
+                });
+            });
+
+            function toggleCopyPrintButton(bookId) {
+                const btn = document.getElementById(`printCopiesBtn-${bookId}`);
+                const countSpan = document.getElementById(`selectedCopiesCount-${bookId}`);
+                const checkedCount = document.querySelectorAll(`.copy-select-checkbox[data-book-id="${bookId}"]:checked`).length;
+                
+                if (btn && countSpan) {
+                    if (checkedCount > 0) {
+                        btn.classList.remove('hidden');
+                        countSpan.textContent = checkedCount;
+                    } else {
+                        btn.classList.add('hidden');
+                    }
+                }
+            }
+        });
+
+        function printSelectedBarcodes() {
+            const checked = document.querySelectorAll('.book-select-checkbox:checked');
+            if (checked.length === 0) {
+                alert('Please select at least one book.');
+                return;
+            }
+
+            const ids = Array.from(checked).map(cb => cb.value).join(',');
+            window.location.href = `{{ route('books.print-barcodes') }}?by_book=1&ids=${ids}`;
+        }
+
+        function printSelectedCopies(bookId) {
+            const checked = document.querySelectorAll(`.copy-select-checkbox[data-book-id="${bookId}"]:checked`);
+            if (checked.length === 0) {
+                alert('Please select at least one copy.');
+                return;
+            }
+
+            const ids = Array.from(checked).map(cb => cb.value).join(',');
+            window.location.href = `{{ route('books.print-barcodes') }}?ids=${ids}`;
         }
     </script>
     @endpush

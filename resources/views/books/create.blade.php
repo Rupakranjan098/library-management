@@ -59,8 +59,8 @@
                 </div>
 
                 <div>
-                    <label for="isbn" class="block text-sm font-medium text-slate-300 mb-2">ISBN (Optional)</label>
-                    <input type="text" id="isbn" name="isbn" value="{{ old('isbn') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Enter ISBN if available">
+                    <label for="isbn" class="block text-sm font-medium text-slate-300 mb-2">Barcode ID / ISBN (Optional)</label>
+                    <input type="text" id="isbn" name="isbn" value="{{ old('isbn') }}" class="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Enter Barcode or ISBN if available">
                 </div>
 
                 <div>

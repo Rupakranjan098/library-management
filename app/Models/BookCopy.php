@@ -19,6 +19,8 @@ class BookCopy extends Model
         'assigned_at' => 'datetime',
     ];
 
+    public static $generatedBarcodes = [];
+
     protected static function boot()
     {
         parent::boot();
@@ -46,7 +48,9 @@ class BookCopy extends Model
             do {
                 $barcode = 'LIB-' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
                 $nextNumber++;
-            } while (self::where('barcode_id', $barcode)->exists());
+            } while (self::where('barcode_id', $barcode)->exists() || in_array($barcode, self::$generatedBarcodes));
+
+            self::$generatedBarcodes[] = $barcode;
 
             return $barcode;
         });

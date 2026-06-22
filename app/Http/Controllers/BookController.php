@@ -240,6 +240,21 @@ class BookController extends Controller
         ]);
     }
 
+    public function generateParticularCopy(Book $book)
+    {
+        $copy = DB::transaction(function () use ($book) {
+            return BookCopy::create([
+                'book_id' => $book->id,
+                'status' => 'Available',
+                'assigned_at' => now(),
+            ]);
+        });
+
+        return redirect()->route('books.print-barcodes', [
+            'ids' => $copy->id,
+        ])->with('success', "Successfully generated barcode {$copy->barcode_id} for '{$book->title}'!");
+    }
+
     public function edit(Book $book)
     {
         return view('books.edit', compact('book'));
@@ -298,10 +313,10 @@ class BookController extends Controller
 
         $callback = function () {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['title', 'isbn', 'author', 'category', 'total_copies']);
-            fputcsv($file, ['The Hobbit', '9780547928227', 'J.R.R. Tolkien', 'Fantasy', '5']);
-            fputcsv($file, ['Foundation', '9780553293357', 'Isaac Asimov', 'Science Fiction', '10']);
-            fputcsv($file, ['Cosmos', '9780345331359', 'Carl Sagan', 'Non-Fiction', '3']);
+            fputcsv($file, ['title', 'barcode', 'author', 'category', 'total_copies']);
+            fputcsv($file, ['The Hobbit', 'LIB-000101', 'J.R.R. Tolkien', 'Fantasy', '5']);
+            fputcsv($file, ['Foundation', 'LIB-000102', 'Isaac Asimov', 'Science Fiction', '10']);
+            fputcsv($file, ['Cosmos', 'LIB-000103', 'Carl Sagan', 'Non-Fiction', '3']);
             fclose($file);
         };
 
@@ -329,6 +344,10 @@ class BookController extends Controller
                 }, $headers);
 
                 $titleIdx = array_search('title', $headers);
+                $barcodeIdx = array_search('barcode', $headers);
+                if ($barcodeIdx === false) {
+                    $barcodeIdx = array_search('barcode_id', $headers);
+                }
                 $isbnIdx = array_search('isbn', $headers);
                 $authorIdx = array_search('author', $headers);
                 if ($authorIdx === false) {
@@ -343,9 +362,9 @@ class BookController extends Controller
                     $copiesIdx = array_search('copies', $headers);
                 }
 
-                if ($titleIdx === false || $isbnIdx === false || $authorIdx === false || $categoryIdx === false) {
+                if ($titleIdx === false || ($barcodeIdx === false && $isbnIdx === false) || $authorIdx === false || $categoryIdx === false) {
                     fclose($handle);
-                    return back()->withErrors(['csv_file' => 'CSV must contain headers: title, isbn, author, category.']);
+                    return back()->withErrors(['csv_file' => 'CSV must contain headers: title, barcode (or isbn), author, category.']);
                 }
 
                 $rowNum = 1;
@@ -357,7 +376,14 @@ class BookController extends Controller
                     }
 
                     $title = isset($data[$titleIdx]) ? trim($data[$titleIdx]) : '';
-                    $isbn = isset($data[$isbnIdx]) ? trim($data[$isbnIdx]) : '';
+                    
+                    $barcode = '';
+                    if ($barcodeIdx !== false && isset($data[$barcodeIdx])) {
+                        $barcode = trim($data[$barcodeIdx]);
+                    } elseif ($isbnIdx !== false && isset($data[$isbnIdx])) {
+                        $barcode = trim($data[$isbnIdx]);
+                    }
+
                     $authorName = isset($data[$authorIdx]) ? trim($data[$authorIdx]) : '';
                     $categoryName = isset($data[$categoryIdx]) ? trim($data[$categoryIdx]) : '';
                     $totalCopies = isset($data[$copiesIdx]) ? intval(trim($data[$copiesIdx])) : 1;
@@ -366,15 +392,15 @@ class BookController extends Controller
                         $totalCopies = 1;
                     }
 
-                    if (empty($title) || empty($isbn) || empty($authorName) || empty($categoryName)) {
+                    if (empty($title) || empty($authorName) || empty($categoryName)) {
                         $skippedCount++;
                         $skips[] = "Row {$rowNum}: Missing required fields.";
                         continue;
                     }
 
-                    if (Book::where('isbn', $isbn)->exists()) {
+                    if (!empty($barcode) && (\App\Models\Book::where('isbn', $barcode)->exists() || BookCopy::where('barcode_id', $barcode)->exists())) {
                         $skippedCount++;
-                        $skips[] = "Row {$rowNum}: ISBN '{$isbn}' already exists.";
+                        $skips[] = "Row {$rowNum}: Barcode/ISBN '{$barcode}' already exists.";
                         continue;
                     }
 
@@ -394,20 +420,28 @@ class BookController extends Controller
                         ]);
                     }
 
-                    DB::transaction(function () use ($title, $isbn, $author, $category, $totalCopies) {
-                        $book = Book::create([
-                            'title' => $title,
-                            'isbn' => $isbn,
-                            'author_id' => $author->id,
-                            'category_id' => $category->id,
-                        ]);
+                    DB::transaction(function () use ($title, $barcode, $author, $category, $totalCopies) {
+                        $book = Book::firstOrCreate(
+                            [
+                                'title' => $title,
+                                'author_id' => $author->id,
+                            ],
+                            [
+                                'isbn' => $barcode,
+                                'category_id' => $category->id,
+                            ]
+                        );
 
                         for ($i = 0; $i < $totalCopies; $i++) {
-                            BookCopy::create([
+                            $copyData = [
                                 'book_id' => $book->id,
                                 'status' => 'Available',
                                 'assigned_at' => now(),
-                            ]);
+                            ];
+                            if ($i === 0 && !empty($barcode)) {
+                                $copyData['barcode_id'] = $barcode;
+                            }
+                            BookCopy::create($copyData);
                         }
                     });
 
